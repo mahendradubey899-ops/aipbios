@@ -9,7 +9,8 @@ import jwt
 from functools import wraps
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH  = os.path.join(BASE_DIR, 'aipbios.db')
+# Use /tmp on Render (writable), local path for development
+DB_PATH  = os.environ.get('DB_PATH', os.path.join('/tmp', 'aipbios.db'))
 SECRET   = 'aipbios-live-prototype-secret-2024'
 app      = Flask(__name__, static_folder=os.path.join(BASE_DIR, 'static'))
 
@@ -718,7 +719,10 @@ def seed():
     main_pid = PROJS[0][0]
 
     # Pre-load demo reports for the first project
-    from server_demo_data import DEMO_REPORTS
+    try:
+        from server_demo_data import DEMO_REPORTS
+    except Exception as e:
+        print(f'Demo data import failed: {e}'); db.commit(); db.close(); return
     for mod, inp, out, tok in DEMO_REPORTS(main_pid, res_id, t):
         db.execute('INSERT INTO intelligence_jobs(id,project_id,created_by,module_type,status,input_payload,output_payload,tokens_used,created_at,completed_at) VALUES(?,?,?,?,?,?,?,?,?,?)',
                    (uid(),main_pid,res_id,mod,'completed',json.dumps(inp),json.dumps(out),tok,t,t))
@@ -726,9 +730,19 @@ def seed():
     db.commit(); db.close()
     print("✓ Demo data seeded")
 
-# Initialize on startup
-init_db()
-seed()
+# Initialize on startup - wrapped in try/except to prevent hanging
+try:
+    init_db()
+    print("Database initialized")
+except Exception as e:
+    print(f"DB init error: {e}")
+
+try:
+    with app.app_context():
+        seed()
+    print("Seed complete")
+except Exception as e:
+    print(f"Seed error: {e}")
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8000))
