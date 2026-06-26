@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AIPBIOS — AI Intelligence Platform</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --brand:#2563eb;--brand-dark:#1d4ed8;--brand-light:#eff6ff;
+  --teal:#0d9488;--amber:#d97706;--rose:#e11d48;--purple:#7c3aed;
+  --green:#059669;--slate:#475569;--pink:#db2777;--orange:#ea580c;
+  --bg:#f8fafc;--card:#fff;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--faint:#94a3b8;
+  --sidebar:260px;--radius:10px;--shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+#app{display:flex;min-height:100vh}
+
+/* Auth */
+#auth-screen{display:none;align-items:center;justify-content:center;min-height:100vh;
+  background:linear-gradient(135deg,#0f172a,#1e3a5f,#0d4f47);flex-direction:column;gap:20px}
+.auth-card{background:white;border-radius:16px;padding:40px;width:420px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.auth-logo{text-align:center;margin-bottom:28px}
+.auth-logo .dna{width:56px;height:56px;background:linear-gradient(135deg,#2563eb,#0d9488);
+  border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:10px}
+.auth-logo h1{font-size:22px;font-weight:700;color:#0f172a}
+.auth-logo p{font-size:12px;color:#64748b;margin-top:2px}
+.auth-tabs{display:flex;gap:0;margin-bottom:24px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.auth-tab{flex:1;padding:9px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;
+  background:white;color:var(--muted);border:none;transition:.15s}
+.auth-tab.active{background:var(--brand);color:white}
+
+/* Sidebar */
+#sidebar{width:var(--sidebar);background:white;border-right:1px solid var(--border);
+  display:none;flex-direction:column;position:fixed;inset:0 auto 0 0;z-index:30;overflow-y:auto}
+.logo{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--border);height:60px}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,#2563eb,#0d9488);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.logo-text{font-size:13px;font-weight:700;color:var(--text)}
+.logo-sub{font-size:10px;color:var(--faint)}
+nav{flex:1;padding:12px 10px;overflow-y:auto}
+.nav-section{font-size:10px;font-weight:600;color:var(--faint);text-transform:uppercase;
+  letter-spacing:.06em;padding:12px 10px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;
+  font-size:12px;font-weight:500;color:var(--muted);transition:.15s;text-decoration:none}
+.nav-item:hover{background:#f1f5f9;color:var(--text)}
+.nav-item.active{background:var(--brand-light);color:var(--brand)}
+.nav-item .icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+.user-footer{border-top:1px solid var(--border);padding:12px}
+.user-info{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;margin-bottom:4px}
+.avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#0d9488);
+  color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+
+/* Main */
+#main{margin-left:var(--sidebar);flex:1;display:none;flex-direction:column}
+.topbar{height:60px;background:white;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:20}
+.topbar-title{font-size:15px;font-weight:600}
+.topbar-sub{font-size:12px;color:var(--muted);margin-top:1px}
+.content{flex:1;padding:24px;max-width:1200px;width:100%}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card-hover{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow);cursor:pointer;transition:box-shadow .2s}
+.card-hover:hover{box-shadow:0 4px 12px rgba(0,0,0,.1)}
+
+/* Forms */
+input,select,textarea{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;
+  font-size:13px;font-family:inherit;outline:none;background:white;color:var(--text)}
+input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:6px}
+.form-group{margin-bottom:14px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;
+  font-size:13px;font-weight:500;cursor:pointer;border:none;transition:.15s;font-family:inherit}
+.btn-primary{background:var(--brand);color:white}.btn-primary:hover{background:var(--brand-dark)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-secondary{background:white;color:var(--text);border:1px solid var(--border)}.btn-secondary:hover{background:#f8fafc}
+.btn-danger{background:#ef4444;color:white}.btn-danger:hover{background:#dc2626}
+.btn-ghost{background:transparent;color:var(--muted);padding:6px 10px}.btn-ghost:hover{background:#f1f5f9;color:var(--text)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-full{width:100%;justify-content:center;padding:10px}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;
+  font-size:11px;font-weight:500;border:1px solid transparent}
+.badge-green{background:#f0fdf4;color:#15803d;border-color:#bbf7d0}
+.badge-blue{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
+.badge-amber{background:#fffbeb;color:#b45309;border-color:#fde68a}
+.badge-red{background:#fef2f2;color:#b91c1c;border-color:#fecaca}
+.badge-purple{background:#faf5ff;color:#6d28d9;border-color:#e9d5ff}
+.badge-gray{background:#f8fafc;color:#64748b;border-color:#e2e8f0}
+
+/* Status */
+.status-completed{background:#f0fdf4;color:#15803d;border-color:#bbf7d0}
+.status-pending,.status-processing{background:#faf5ff;color:#6d28d9;border-color:#e9d5ff}
+.status-failed{background:#fef2f2;color:#b91c1c;border-color:#fecaca}
+
+/* Toast */
+#toast{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{padding:12px 18px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.15);
+  animation:slideIn .2s ease;min-width:220px}
+.toast-success{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0}
+.toast-error{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
+.toast-info{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
+/* Module header banner */
+.module-banner{display:flex;align-items:center;gap:14px;padding:16px 20px;border-radius:12px;
+  border:1px solid;margin-bottom:24px}
+
+/* Report viewer */
+.report-viewer{background:#f8fafc;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.report-header{padding:10px 16px;background:white;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between}
+.report-body{padding:16px;overflow-y:auto;max-height:500px;font-size:12px}
+.rk{color:var(--brand);font-weight:600}.rv{color:var(--text)}
+.rs{color:#059669}.rn{color:var(--amber)}
+.r-section{margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:10px}
+.r-title{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.04em;margin-bottom:8px}
+.r-row{display:flex;gap:8px;margin-bottom:4px;align-items:flex-start}
+.r-key{color:var(--brand);font-weight:500;min-width:180px;flex-shrink:0}
+.r-val{color:var(--text)}
+.r-list-item{padding-left:16px;margin-bottom:2px;color:var(--text)}
+.r-list-item::before{content:"•";color:var(--brand);margin-right:6px}
+.score-badge{display:inline-flex;align-items:center;justify-content:center;
+  width:36px;height:36px;border-radius:50%;font-size:15px;font-weight:700;
+  background:var(--brand);color:white}
+
+/* Job status card */
+.job-card{border:1px solid;border-radius:10px;padding:16px;display:flex;align-items:flex-start;gap:14px}
+.job-card.completed{border-color:#bbf7d0;background:#f0fdf4}
+.job-card.processing,.job-card.pending{border-color:#e9d5ff;background:#faf5ff}
+.job-card.failed{border-color:#fecaca;background:#fef2f2}
+.job-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+.spin{animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.progress-bar{height:4px;background:#e9d5ff;border-radius:2px;overflow:hidden;margin-top:10px}
+.progress-fill{height:100%;background:var(--purple);border-radius:2px;animation:pulse 1.5s ease infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* Dashboard stats */
+.stat-card{padding:20px;border-radius:var(--radius);background:white;border:1px solid var(--border)}
+.stat-label{font-size:12px;font-weight:500;color:var(--muted)}
+.stat-value{font-size:28px;font-weight:700;color:var(--text);margin-top:4px}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+
+/* Project grid */
+.projects-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.project-card{padding:18px}
+.project-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;line-height:1.3}
+.project-meta{font-size:11px;color:var(--faint)}
+.project-tags{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.tag{padding:2px 8px;border-radius:6px;font-size:11px;font-weight:500}
+.tag-rose{background:#fff1f2;color:#e11d48}.tag-teal{background:#f0fdfa;color:#0d9488}
+.tag-blue{background:#eff6ff;color:#1d4ed8}.tag-amber{background:#fffbeb;color:#b45309}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;
+  align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:white;border-radius:16px;padding:28px;width:500px;max-width:95vw;
+  box-shadow:0 20px 60px rgba(0,0,0,.2);animation:slideUp .25s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:20px;
+  display:flex;align-items:center;justify-content:space-between}
+
+/* Table */
+table{width:100%;border-collapse:collapse}
+th{background:#f8fafc;padding:8px 14px;text-align:left;font-size:11px;font-weight:600;
+  color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+td{padding:10px 14px;border-top:1px solid var(--border);font-size:12px;vertical-align:middle}
+tr:hover td{background:#fafafa}
+
+/* Misc */
+.flex{display:flex}.items-center{align-items:center}.justify-between{justify-content:space-between}
+.gap-2{gap:8px}.gap-3{gap:12px}.mb-4{margin-bottom:16px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}
+.text-sm{font-size:13px}.text-xs{font-size:11px}.text-muted{color:var(--muted)}
+.font-medium{font-weight:500}.font-semibold{font-weight:600}
+.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.empty-state{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty-icon{font-size:36px;margin-bottom:10px}
+.chip-group{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{padding:4px 10px;border-radius:99px;font-size:11px;font-weight:500;cursor:pointer;
+  border:1px solid var(--border);background:white;color:var(--muted);transition:.15s}
+.chip.active{background:var(--brand);color:white;border-color:var(--brand)}
+.section-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:14px}
+hr{border:none;border-top:1px solid var(--border);margin:16px 0}
+.intel-2col{display:grid;grid-template-columns:420px 1fr;gap:20px;align-items:start}
+@media(max-width:900px){.intel-2col{grid-template-columns:1fr}.projects-grid{grid-template-columns:1fr 1fr}.stats-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<!-- Auth Screen -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="dna">🧬</div>
+      <h1>AIPBIOS</h1>
+      <p>AI Intelligence Platform for Healthcare & Pharma</p>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">Sign in</button>
+      <button class="auth-tab" onclick="switchAuthTab('register')">Create account</button>
+    </div>
+    <!-- Login -->
+    <div id="login-form">
+      <div id="login-error" style="display:none;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;padding:10px;border-radius:8px;font-size:13px;margin-bottom:12px"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="login-email" placeholder="researcher@aipbios.com" autocomplete="email"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" autocomplete="current-password"></div>
+      <button class="btn btn-primary btn-full mt-3" id="login-btn" onclick="doLogin()">Sign in</button>
+      <div style="margin-top:14px;padding:12px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;font-size:12px">
+        <div style="font-weight:600;color:#0369a1;margin-bottom:6px">⚡ Quick demo — click to fill:</div>
+        <button onclick="fillLogin('researcher@aipbios.com','Research@12345')" style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:#0369a1;margin:2px">Researcher</button>
+        <button onclick="fillLogin('admin@aipbios.com','Admin@12345')" style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:#0369a1;margin:2px">Admin</button>
+        <button onclick="fillLogin('student@aipbios.com','Student@12345')" style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:#0369a1;margin:2px">Student</button>
+      </div>
+    </div>
+    <!-- Register -->
+    <div id="register-form" style="display:none">
+      <div id="reg-error" style="display:none;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;padding:10px;border-radius:8px;font-size:13px;margin-bottom:12px"></div>
+      <div class="grid-2">
+        <div class="form-group"><label>First name</label><input id="reg-first" placeholder="Priya"></div>
+        <div class="form-group"><label>Last name</label><input id="reg-last" placeholder="Sharma"></div>
+      </div>
+      <div class="form-group"><label>Email</label><input type="email" id="reg-email" placeholder="you@example.com"></div>
+      <div class="form-group"><label>Role</label>
+        <select id="reg-role">
+          <option value="researcher">Researcher</option>
+          <option value="student">Student</option>
+          <option value="industry_user">Industry Professional</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Password <span style="color:#94a3b8;font-weight:400">(min 8 characters)</span></label><input type="password" id="reg-pass" placeholder="e.g. MyPass@123"></div>
+      <div class="form-group"><label>Confirm password</label><input type="password" id="reg-pass2" placeholder="Repeat password" onkeydown="if(event.key==='Enter')doRegister()"></div>
+      <button class="btn btn-primary btn-full mt-3" id="reg-btn" onclick="doRegister()">Create account</button>
+      <div style="margin-top:12px;text-align:center;font-size:12px;color:#94a3b8">
+        Already have an account? <a href="#" onclick="switchAuthTab('login')" style="color:#2563eb">Sign in instead</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div id="sidebar">
+  <div class="logo">
+    <div class="logo-icon">🧬</div>
+    <div><div class="logo-text">AIPBIOS</div><div class="logo-sub">AI Intelligence Platform</div></div>
+  </div>
+  <nav>
+    <div class="nav-item" onclick="showPage('dashboard')" id="nav-dashboard"><span class="icon">📊</span> Dashboard</div>
+    <div class="nav-item" onclick="showPage('projects')"  id="nav-projects"><span class="icon">📁</span> Projects</div>
+    <div id="nav-admin-item" style="display:none">
+      <div class="nav-item" onclick="showPage('admin')" id="nav-admin"><span class="icon">👥</span> Admin</div>
+    </div>
+    <div class="nav-section">Intelligence Modules</div>
+    <div class="nav-item" onclick="showPage('disease')"       id="nav-disease"><span class="icon" style="color:#e11d48">🔬</span> Disease Intel</div>
+    <div class="nav-item" onclick="showPage('formulation')"   id="nav-formulation"><span class="icon" style="color:#0d9488">💊</span> Formulation</div>
+    <div class="nav-item" onclick="showPage('literature')"    id="nav-literature"><span class="icon" style="color:#2563eb">📚</span> Literature</div>
+    <div class="nav-item" onclick="showPage('regulatory')"    id="nav-regulatory"><span class="icon" style="color:#d97706">🛡️</span> Regulatory</div>
+    <div class="nav-item" onclick="showPage('patent')"        id="nav-patent"><span class="icon" style="color:#7c3aed">🔎</span> Patent</div>
+    <div class="nav-item" onclick="showPage('stability')"     id="nav-stability"><span class="icon" style="color:#ea580c">🌡️</span> Stability</div>
+    <div class="nav-item" onclick="showPage('analytical')"    id="nav-analytical"><span class="icon" style="color:#059669">📈</span> Analytical</div>
+    <div class="nav-item" onclick="showPage('manufacturing')" id="nav-manufacturing"><span class="icon" style="color:#475569">🏭</span> Manufacturing</div>
+    <div class="nav-item" onclick="showPage('cost')"          id="nav-cost"><span class="icon" style="color:#059669">💰</span> Cost Intel</div>
+    <div class="nav-item" onclick="showPage('dossier')"       id="nav-dossier"><span class="icon" style="color:#2563eb">📄</span> Dossier Builder</div>
+    <div class="nav-item" onclick="showPage('research')"      id="nav-research"><span class="icon" style="color:#db2777">🎓</span> Research Asst.</div>
+  </nav>
+  <div class="user-footer">
+    <div class="user-info">
+      <div class="avatar" id="user-avatar">?</div>
+      <div style="min-width:0">
+        <div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="user-name">User</div>
+        <div style="font-size:10px;color:var(--faint)" id="user-role">-</div>
+      </div>
+    </div>
+    <button class="btn btn-ghost btn-full btn-sm" onclick="doLogout()">🚪 Sign out</button>
+  </div>
+</div>
+
+<div id="main">
+  <div class="topbar">
+    <div><div class="topbar-title" id="page-title">Dashboard</div><div class="topbar-sub" id="page-sub"></div></div>
+    <div class="flex items-center gap-2">
+      <span id="topbar-user" style="font-size:12px;color:var(--muted)"></span>
+    </div>
+  </div>
+  <div class="content" id="page-content"></div>
+</div>
+
+<!-- Create Project Modal -->
+<div class="modal-overlay" id="create-modal">
+  <div class="modal">
+    <div class="modal-title">New Project <button class="btn btn-ghost btn-sm" onclick="closeModal()">✕</button></div>
+    <div class="form-group"><label>Project Title *</label><input id="proj-title" placeholder="e.g. GlycoHerb Diabetes Tablet — Phase 1"></div>
+    <div class="form-group"><label>Description</label><textarea id="proj-desc" rows="2" placeholder="Brief description of this project"></textarea></div>
+    <div class="grid-2">
+      <div class="form-group"><label>Disease Area</label><input id="proj-disease" placeholder="e.g. Type 2 Diabetes"></div>
+      <div class="form-group"><label>Product Type</label><input id="proj-product" placeholder="e.g. Ayurvedic, Herbal"></div>
+    </div>
+    <div class="flex gap-2 mt-3">
+      <button class="btn btn-secondary flex-1" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary flex-1" onclick="createProject()">Create project</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let AUTH = {token:null, user:null};
+let PROJECTS = [];
+let currentPage = 'dashboard';
+const API = '';
+
+// ── Utilities ──────────────────────────────────────────────────────────────
+async function api(method, path, body, isForm) {
+  const opts = {method, headers: {}};
+  if (AUTH.token) opts.headers['Authorization'] = 'Bearer ' + AUTH.token;
+  if (body && !isForm) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  if (body && isForm) opts.body = body;
+  const r = await fetch(API + path, opts);
+  if (r.status === 401) { doLogout(); throw new Error('Unauthorized'); }
+  const ct = r.headers.get('content-type')||'';
+  if (ct.includes('application/json')) return r.json();
+  return r;
+}
+
+function toast(msg, type='info') {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  document.getElementById('toast').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+function fmtDate(s) {
+  if (!s) return '—';
+  return new Date(s).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'});
+}
+
+function statusBadge(s) {
+  const map = {completed:'green',active:'green',pending:'purple',processing:'purple',failed:'red',draft:'gray',archived:'gray',on_hold:'amber'};
+  return `<span class="badge badge-${map[s]||'gray'}">${s}</span>`;
+}
+
+function roleBadge(r) {
+  const map = {superadmin:'purple',org_admin:'blue',researcher:'green',student:'amber',industry_user:'gray'};
+  return `<span class="badge badge-${map[r]||'gray'}">${(r||'').replace('_',' ')}</span>`;
+}
+
+// ── Auth ───────────────────────────────────────────────────────────────────
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',['login','register'][i]===tab));
+  document.getElementById('login-form').style.display = tab==='login'?'block':'none';
+  document.getElementById('register-form').style.display = tab==='register'?'block':'none';
+}
+
+function fillLogin(email, pass) {
+  document.getElementById('login-email').value = email;
+  document.getElementById('login-password').value = pass;
+  document.getElementById('login-error').style.display = 'none';
+}
+
+async function doLogin() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl    = document.getElementById('login-error');
+  if (errEl) errEl.style.display = 'none';
+
+  if (!email || !password) {
+    if (errEl) { errEl.style.display='block'; errEl.textContent='⚠ Please enter your email and password'; }
+    return;
+  }
+  const btn = document.getElementById('login-btn');
+  if (btn) { btn.disabled=true; btn.textContent='Signing in…'; }
+  try {
+    const d = await api('POST','/api/v1/auth/login/',{email,password});
+    if (d.error) {
+      if (errEl) { errEl.style.display='block'; errEl.textContent='⚠ ' + (d.message||'Invalid email or password'); }
+      return;
+    }
+    AUTH = {token: d.access, user: d.user};
+    localStorage.setItem('aipbios_token', d.access);
+    localStorage.setItem('aipbios_user', JSON.stringify(d.user));
+    showDashboard();
+    toast(`Welcome back, ${d.user.first_name||'User'}! 👋`,'success');
+  } catch(e) {
+    if (errEl) { errEl.style.display='block'; errEl.textContent='⚠ Login failed — server may be offline. Make sure python3 server.py is running.'; }
+  } finally {
+    if (btn) { btn.disabled=false; btn.textContent='Sign in'; }
+  }
+}
+
+function showRegError(msg) {
+  const el = document.getElementById('reg-error');
+  if (el) { el.style.display='block'; el.textContent='⚠ ' + msg; }
+  toast(msg, 'error');
+}
+function hideRegError() {
+  const el = document.getElementById('reg-error');
+  if (el) el.style.display='none';
+}
+
+async function doRegister() {
+  hideRegError();
+  const first    = document.getElementById('reg-first').value.trim();
+  const last     = document.getElementById('reg-last').value.trim();
+  const email    = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-pass').value;
+  const confirm  = document.getElementById('reg-pass2') ? document.getElementById('reg-pass2').value : password;
+  const role     = document.getElementById('reg-role').value;
+
+  if (!email)           { showRegError('Email address is required'); return; }
+  if (!password)        { showRegError('Password is required'); return; }
+  if (password.length < 8) { showRegError('Password must be at least 8 characters (e.g. MyPass@123)'); return; }
+  if (password !== confirm) { showRegError('Passwords do not match — please re-type'); return; }
+
+  const btn = document.getElementById('reg-btn');
+  if (btn) { btn.disabled=true; btn.textContent='Creating account…'; }
+
+  try {
+    const d = await api('POST','/api/v1/auth/register/',{
+      first_name: first, last_name: last, email, password,
+      confirm_password: confirm, role
+    });
+    if (d.error) { showRegError(d.message || 'Registration failed'); return; }
+    AUTH = {token: d.tokens.access, user: d.user};
+    localStorage.setItem('aipbios_token', d.tokens.access);
+    localStorage.setItem('aipbios_user', JSON.stringify(d.user));
+    showDashboard();
+    toast('Account created! Welcome to AIPBIOS 🎉','success');
+  } catch(e) {
+    showRegError('Registration failed — please check your details and try again');
+  } finally {
+    if (btn) { btn.disabled=false; btn.textContent='Create account'; }
+  }
+}
+
+function doLogout() {
+  AUTH = {token:null, user:null};
+  localStorage.removeItem('aipbios_token');
+  localStorage.removeItem('aipbios_user');
+  document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('sidebar').style.display='none';
+  document.getElementById('main').style.display='none';
+}
+
+function showDashboard() {
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('sidebar').style.display='flex';
+  document.getElementById('main').style.display='flex';
+  const u = AUTH.user;
+  document.getElementById('user-name').textContent = u.full_name || u.email;
+  document.getElementById('user-role').textContent = (u.role||'').replace('_',' ');
+  document.getElementById('topbar-user').textContent = u.full_name || u.email;
+  document.getElementById('user-avatar').textContent = ((u.first_name||'?')[0]+(u.last_name||'?')[0]).toUpperCase();
+  if (['superadmin','org_admin'].includes(u.role)) {
+    document.getElementById('nav-admin-item').style.display='block';
+  }
+  showPage('dashboard');
+}
+
+// ── Navigation ─────────────────────────────────────────────────────────────
+function showPage(page) {
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const navEl = document.getElementById('nav-'+page);
+  if (navEl) navEl.classList.add('active');
+  const pages = {
+    dashboard:    ['Dashboard','Platform overview and recent activity'],
+    projects:     ['Projects','Manage your research and development projects'],
+    admin:        ['Admin — User Management','Manage platform users'],
+    disease:      ['Disease Intelligence','Opportunity analysis and innovation mapping'],
+    formulation:  ['Formulation Intelligence','AI-designed formulations with batch formula'],
+    literature:   ['Literature Intelligence','PubMed literature review and research gap analysis'],
+    regulatory:   ['Regulatory Intelligence','Pathways, CTD structure, compliance checklist'],
+    patent:       ['Patent Intelligence','Prior art review and patentability assessment'],
+    stability:    ['Stability Intelligence','ICH-compliant stability plan and shelf-life assessment'],
+    analytical:   ['Analytical Intelligence','AI interpretation of HPLC, FTIR, UV-Vis spectra'],
+    manufacturing:['Manufacturing Intelligence','BMR, BPR, SOP and equipment documentation'],
+    cost:         ['Cost Intelligence','Raw material, manufacturing and packaging cost model'],
+    dossier:      ['Dossier Builder','CTD-ready dossier with PDF and JSON export'],
+    research:     ['Research Assistant','Proposals, protocols and publication drafts'],
+  };
+  const [title,sub] = pages[page]||[page,''];
+  document.getElementById('page-title').textContent = title;
+  document.getElementById('page-sub').textContent = sub;
+  const fn = {
+    dashboard, projects, admin,
+    disease:        ()=>intelPage('disease','🔬','Disease Intelligence','bg:#fff1f2;border:#fecdd3;color:#e11d48','disease_intel','disease','analyse',diseaseForm),
+    formulation:    ()=>intelPage('formulation','💊','Formulation Intelligence','bg:#f0fdfa;border:#99f6e4;color:#0d9488','formulation_intel','formulation','analyse',formulationForm),
+    literature:     ()=>intelPage('literature','📚','Literature Intelligence','bg:#eff6ff;border:#bfdbfe;color:#2563eb','literature_intel','literature','analyse',literatureForm),
+    regulatory:     ()=>intelPage('regulatory','🛡️','Regulatory Intelligence','bg:#fffbeb;border:#fde68a;color:#d97706','regulatory_intel','regulatory','analyse',regulatoryForm),
+    patent:         ()=>intelPage('patent','🔎','Patent Intelligence','bg:#faf5ff;border:#e9d5ff;color:#7c3aed','patent_intel','patent','analyse',patentForm),
+    stability:      ()=>intelPage('stability','🌡️','Stability Intelligence','bg:#fff7ed;border:#fed7aa;color:#ea580c','stability_intel','stability','analyse',stabilityForm),
+    analytical:     ()=>intelPage('analytical','📈','Analytical Intelligence','bg:#f0fdf4;border:#bbf7d0;color:#059669','analytical_intel','analytical','analyse',analyticalForm),
+    manufacturing:  ()=>intelPage('manufacturing','🏭','Manufacturing Intelligence','bg:#f8fafc;border:#cbd5e1;color:#475569','manufacturing_intel','manufacturing','analyse',manufacturingForm),
+    cost:           ()=>intelPage('cost','💰','Cost Intelligence','bg:#f0fdf4;border:#bbf7d0;color:#059669','cost_intel','cost','analyse',costForm),
+    dossier:        ()=>intelPage('dossier','📄','Dossier Builder','bg:#eff6ff;border:#bfdbfe;color:#2563eb','dossier','dossier','build',dossierForm,true),
+    research:       ()=>intelPage('research','🎓','Research Assistant','bg:#fdf2f8;border:#f9a8d4;color:#db2777','research_asst','research','generate',researchForm),
+  };
+  (fn[page]||dashboard)();
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────────────
+async function dashboard() {
+  document.getElementById('page-content').innerHTML = `<div style="color:var(--muted);text-align:center;padding:30px">Loading…</div>`;
+  try {
+    const data = await api('GET','/api/v1/projects/');
+    PROJECTS = data.results || data || [];
+    const active = PROJECTS.filter(p=>p.status==='active').length;
+    const totalJobs = PROJECTS.reduce((a,p)=>a+(p.job_count||0),0);
+
+    document.getElementById('page-content').innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Active Projects</div><div class="stat-value" style="color:var(--brand)">${active}</div></div>
+      <div class="stat-card"><div class="stat-label">Total Projects</div><div class="stat-value">${PROJECTS.length}</div></div>
+      <div class="stat-card"><div class="stat-label">AI Jobs Run</div><div class="stat-value" style="color:var(--teal)">${totalJobs}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 320px;gap:20px">
+      <div class="card" style="padding:20px">
+        <div class="flex justify-between items-center mb-4">
+          <div class="section-title" style="margin:0">Recent Projects</div>
+          <button class="btn btn-secondary btn-sm" onclick="showPage('projects')">View all →</button>
+        </div>
+        ${PROJECTS.length===0 ? `<div class="empty-state"><div class="empty-icon">📁</div><div>No projects yet</div><button class="btn btn-primary btn-sm mt-3" onclick="showPage('projects')">Create first project</button></div>` :
+          PROJECTS.slice(0,6).map(p=>`
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;cursor:pointer;margin-bottom:4px" onclick="viewProject('${p.id}')" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''"  >
+            <div style="min-width:0">
+              <div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.title}</div>
+              <div style="font-size:11px;color:var(--faint)">${p.disease_area||'General'} · ${p.job_count||0} jobs · ${fmtDate(p.updated_at)}</div>
+            </div>
+            ${statusBadge(p.status)}
+          </div>`).join('')}
+      </div>
+      <div>
+        <div class="card" style="padding:20px">
+          <div class="section-title">Quick Actions</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            ${[['🔬','Disease Intel','disease','#fff1f2','#e11d48'],['💊','Formulate','formulation','#f0fdfa','#0d9488'],['🛡️','Regulatory','regulatory','#fffbeb','#d97706'],['📄','Dossier','dossier','#eff6ff','#2563eb']].map(([ic,lbl,pg,bg,c])=>`
+            <div class="card-hover" style="padding:14px;cursor:pointer;background:${bg};border-color:${c}20" onclick="showPage('${pg}')">
+              <div style="font-size:20px;margin-bottom:6px">${ic}</div>
+              <div style="font-size:12px;font-weight:500;color:${c}">${lbl}</div>
+            </div>`).join('')}
+          </div>
+        </div>
+        <div class="card" style="padding:20px;margin-top:16px">
+          <div class="section-title">Diabetes + Herbal Demo</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Pre-loaded demo project with 5 completed intelligence reports</div>
+          ${PROJECTS.find(p=>p.disease_area&&p.disease_area.includes('Diabetes')) ?
+            `<button class="btn btn-primary btn-sm btn-full" onclick="viewProject('${PROJECTS.find(p=>p.disease_area&&p.disease_area.includes('Diabetes')).id}')">View Demo Project →</button>` :
+            `<button class="btn btn-secondary btn-sm btn-full" onclick="showPage('projects')">Create project first</button>`}
+        </div>
+      </div>
+    </div>`;
+  } catch(e) { document.getElementById('page-content').innerHTML = `<div class="empty-state">Failed to load dashboard</div>`; }
+}
+
+// ── Projects ───────────────────────────────────────────────────────────────
+async function projects() {
+  document.getElementById('page-content').innerHTML = `<div style="color:var(--muted);text-align:center;padding:30px">Loading…</div>`;
+  const data = await api('GET','/api/v1/projects/');
+  PROJECTS = data.results || data || [];
+
+  document.getElementById('page-content').innerHTML = `
+  <div class="flex justify-between items-center mb-4">
+    <div class="flex gap-2" id="status-filters">
+      ${['all','active','draft','archived'].map(s=>`<button class="chip ${s==='all'?'active':''}" onclick="filterProjects('${s}',this)">${s==='all'?'All':s}</button>`).join('')}
+    </div>
+    <button class="btn btn-primary" onclick="document.getElementById('create-modal').classList.add('open')">+ New project</button>
+  </div>
+  <div class="projects-grid" id="projects-grid">
+    ${renderProjects(PROJECTS)}
+  </div>`;
+}
+
+function renderProjects(list) {
+  if (!list.length) return `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📁</div><div>No projects found</div><button class="btn btn-primary btn-sm mt-3" onclick="document.getElementById('create-modal').classList.add('open')">Create project</button></div>`;
+  return list.map(p=>`
+  <div class="card-hover project-card" onclick="viewProject('${p.id}')">
+    <div class="flex justify-between items-start gap-2">
+      <div class="project-title">${p.title}</div>
+      ${statusBadge(p.status)}
+    </div>
+    ${p.description?`<div class="project-meta" style="margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${p.description}</div>`:''}
+    <div class="project-tags">
+      ${p.disease_area?`<span class="tag tag-rose">${p.disease_area}</span>`:''}
+      ${p.product_type?`<span class="tag tag-teal">${p.product_type}</span>`:''}
+    </div>
+    <div class="flex justify-between items-center" style="border-top:1px solid var(--border);padding-top:10px;margin-top:8px">
+      <span style="font-size:11px;color:var(--faint)">${fmtDate(p.updated_at)} · ${p.job_count||0} jobs</span>
+      <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();archiveProject('${p.id}','${p.title}')" title="Archive" style="font-size:16px;padding:2px 6px">📦</button>
+    </div>
+  </div>`).join('');
+}
+
+function filterProjects(status, el) {
+  document.querySelectorAll('#status-filters .chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  const filtered = status==='all' ? PROJECTS : PROJECTS.filter(p=>p.status===status);
+  document.getElementById('projects-grid').innerHTML = renderProjects(filtered);
+}
+
+async function viewProject(pid) {
+  document.getElementById('page-content').innerHTML = `<div style="text-align:center;padding:40px;color:var(--muted)">Loading project…</div>`;
+  document.getElementById('page-title').textContent = 'Project Detail';
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  try {
+    const [proj, dash] = await Promise.all([
+      api('GET',`/api/v1/projects/${pid}/`),
+      api('GET',`/api/v1/projects/${pid}/dashboard/`)
+    ]);
+    const byMod = dash.job_by_module || {};
+    const jobs  = dash.recent_jobs  || [];
+    const modColors = {'disease_intel':'#e11d48','formulation_intel':'#0d9488','literature_intel':'#2563eb','regulatory_intel':'#d97706','patent_intel':'#7c3aed','stability_intel':'#ea580c','dossier':'#1d4ed8','research_asst':'#db2777','manufacturing_intel':'#475569','cost_intel':'#059669','analytical_intel':'#16a34a'};
+
+    document.getElementById('page-content').innerHTML = `
+    <div class="flex gap-2 items-center mb-4">
+      <button class="btn btn-secondary btn-sm" onclick="showPage('projects')">← All projects</button>
+      ${proj.status!=='archived'?`<button class="btn btn-secondary btn-sm" onclick="archiveProject('${pid}','${proj.title}')">Archive</button>`:''}
+    </div>
+    <div class="card" style="padding:20px;margin-bottom:20px">
+      <div class="flex justify-between items-start">
+        <div>
+          <h2 style="font-size:18px;font-weight:700">${proj.title}</h2>
+          <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
+            ${statusBadge(proj.status)}
+            ${proj.disease_area?`<span class="tag tag-rose">${proj.disease_area}</span>`:''}
+            ${proj.product_type?`<span class="tag tag-teal">${proj.product_type}</span>`:''}
+          </div>
+          ${proj.description?`<p style="font-size:13px;color:var(--muted);margin-top:10px">${proj.description}</p>`:''}
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:11px;color:var(--faint)">Created ${fmtDate(proj.created_at)}</div>
+        </div>
+      </div>
+    </div>
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card"><div class="stat-label">AI Jobs</div><div class="stat-value" style="color:var(--brand)">${proj.job_count||0}</div></div>
+      <div class="stat-card"><div class="stat-label">Total Tokens</div><div class="stat-value" style="font-size:18px">${(dash.total_tokens||0).toLocaleString()}</div></div>
+      <div class="stat-card"><div class="stat-label">Modules Run</div><div class="stat-value" style="color:var(--teal)">${Object.keys(byMod).length}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="card" style="padding:20px">
+        <div class="section-title">Module Activity</div>
+        ${Object.keys(byMod).length===0?`<div class="empty-state" style="padding:20px"><div>No jobs yet</div><button class="btn btn-primary btn-sm mt-3" onclick="showPage('disease')">Run first module →</button></div>`:
+          Object.entries(byMod).map(([mod,cnt])=>`
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;margin-bottom:4px;border-radius:6px;background:#f8fafc">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:8px;height:8px;border-radius:50%;background:${modColors[mod]||'#94a3b8'}"></div>
+              <span style="font-size:12px">${mod.replace(/_intel/,'').replace(/_/g,' ')}</span>
+            </div>
+            <span class="badge badge-blue">${cnt} job${cnt>1?'s':''}</span>
+          </div>`).join('')}
+      </div>
+      <div class="card" style="padding:20px">
+        <div class="section-title">Recent Jobs</div>
+        ${jobs.length===0?`<div class="empty-state" style="padding:20px"><div>No jobs yet</div></div>`:
+          jobs.slice(0,8).map(j=>`
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;margin-bottom:4px;cursor:pointer;border-radius:6px" onclick="showJobResult('${j.id}')" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+            <div style="display:flex;align-items:center;gap:8px;min-width:0">
+              <div style="width:6px;height:6px;border-radius:50%;flex-shrink:0;background:${modColors[j.module_type]||'#94a3b8'}"></div>
+              <div style="min-width:0">
+                <div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(j.module_type||'').replace(/_/g,' ')}</div>
+                <div style="font-size:10px;color:var(--faint)">${fmtDate(j.created_at)} · ${j.tokens_used||0} tokens</div>
+              </div>
+            </div>
+            ${statusBadge(j.status)}
+          </div>`).join('')}
+      </div>
+    </div>`;
+  } catch(e) { document.getElementById('page-content').innerHTML = `<div class="empty-state">Failed to load project</div>`; }
+}
+
+async function showJobResult(jid) {
+  try {
+    const j = await api('GET',`/api/v1/projects/jobs/${jid}/result/`);
+    const out = j.output_payload || {};
+    renderReportModal(j.module_type, out, jid);
+  } catch(e) { toast('Failed to load report','error'); }
+}
+
+function renderReportModal(moduleType, output, jobId) {
+  const existing = document.getElementById('report-modal');
+  if (existing) existing.remove();
+  const div = document.createElement('div');
+  div.id = 'report-modal';
+  div.className = 'modal-overlay open';
+  div.innerHTML = `
+  <div class="modal" style="width:700px;max-height:85vh;overflow-y:auto">
+    <div class="modal-title">
+      <span>${(moduleType||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())} Report</span>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('report-modal').remove()">✕</button>
+    </div>
+    ${renderReport(output)}
+    <div class="flex gap-2 mt-3">
+      ${moduleType==='dossier'?`<button class="btn btn-primary btn-sm" onclick="downloadDossierPdf('${jobId}')">⬇ Download PDF</button><button class="btn btn-secondary btn-sm" onclick="downloadDossierJson('${jobId}')">⬇ Download JSON</button>`:''}
+      ${moduleType==='research_asst'?`<button class="btn btn-primary btn-sm" onclick="downloadResearchPdf('${jobId}')">⬇ Download PDF</button>`:''}
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('report-modal').remove()">Close</button>
+    </div>
+  </div>`;
+  document.body.appendChild(div);
+}
+
+function closeModal() { document.getElementById('create-modal').classList.remove('open'); }
+
+async function createProject() {
+  const title = document.getElementById('proj-title').value.trim();
+  if (!title) { toast('Project title is required','error'); return; }
+  try {
+    const p = await api('POST','/api/v1/projects/',{
+      title, description: document.getElementById('proj-desc').value,
+      disease_area: document.getElementById('proj-disease').value,
+      product_type: document.getElementById('proj-product').value,
+    });
+    if (p.error) { toast(p.message||'Failed to create project','error'); return; }
+    closeModal();
+    ['proj-title','proj-desc','proj-disease','proj-product'].forEach(id=>document.getElementById(id).value='');
+    toast('Project created!','success');
+    projects();
+  } catch(e) { toast('Failed to create project','error'); }
+}
+
+async function archiveProject(pid, title) {
+  if (!confirm(`Archive "${title}"?`)) return;
+  await api('POST',`/api/v1/projects/${pid}/archive/`);
+  toast('Project archived','success');
+  projects();
+}
+
+// ── Admin ──────────────────────────────────────────────────────────────────
+async function admin() {
+  const data = await api('GET','/api/v1/users/');
+  const users = data.results || data || [];
+  document.getElementById('page-content').innerHTML = `
+  <div class="card">
+    <div style="padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:13px;font-weight:500">👥 ${users.length} users</span>
+      <input style="width:240px" placeholder="Search users…" oninput="searchUsers(this.value)">
+    </div>
+    <table id="users-table">
+      <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr>
+      ${users.map(u=>`
+      <tr>
+        <td><strong>${u.full_name||'—'}</strong></td>
+        <td style="color:var(--muted)">${u.email}</td>
+        <td>${roleBadge(u.role)}</td>
+        <td>${u.is_active?'<span class="badge badge-green">Active</span>':'<span class="badge badge-red">Inactive</span>'}</td>
+        <td style="color:var(--faint)">${fmtDate(u.created_at)}</td>
+        <td>
+          ${u.is_active
+            ? `<button class="btn btn-ghost btn-sm" style="color:#e11d48" onclick="toggleUser('${u.id}',false)">Deactivate</button>`
+            : `<button class="btn btn-ghost btn-sm" style="color:#059669" onclick="toggleUser('${u.id}',true)">Activate</button>`}
+        </td>
+      </tr>`).join('')}
+    </table>
+  </div>`;
+}
+
+async function toggleUser(uid_, activate) {
+  const ep = activate ? 'activate' : 'deactivate';
+  await api('POST',`/api/v1/users/${uid_}/${ep}/`);
+  toast(`User ${activate?'activated':'deactivated'}`,'success');
+  admin();
+}
+
+async function searchUsers(q_) {
+  const data = await api('GET',`/api/v1/users/?search=${encodeURIComponent(q_)}`);
+  const users = data.results || data || [];
+  // just re-render rows
+  const tbody = document.querySelector('#users-table');
+  if (!tbody) return;
+  const rows = users.map(u=>`<tr><td><strong>${u.full_name||'—'}</strong></td><td style="color:var(--muted)">${u.email}</td><td>${roleBadge(u.role)}</td><td>${u.is_active?'<span class="badge badge-green">Active</span>':'<span class="badge badge-red">Inactive</span>'}</td><td>${fmtDate(u.created_at)}</td><td>${u.is_active?`<button class="btn btn-ghost btn-sm" style="color:#e11d48" onclick="toggleUser('${u.id}',false)">Deactivate</button>`:`<button class="btn btn-ghost btn-sm" style="color:#059669" onclick="toggleUser('${u.id}',true)">Activate</button>`}</td></tr>`).join('');
+  tbody.innerHTML = `<tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr>` + rows;
+}
+
+// ── Report renderer ────────────────────────────────────────────────────────
+function renderReport(output) {
+  if (!output || typeof output !== 'object' || Object.keys(output).length === 0)
+    return '<div style="color:var(--muted);padding:20px;text-align:center">No output data</div>';
+  return `<div class="report-viewer"><div class="report-body">${renderObj(output, 0)}</div></div>`;
+}
+
+function renderObj(obj, depth) {
+  if (obj === null || obj === undefined) return '<span style="color:#94a3b8">null</span>';
+  if (typeof obj === 'boolean') return `<span style="color:#d97706">${obj}</span>`;
+  if (typeof obj === 'number')  return `<span style="color:#d97706">${obj}</span>`;
+  if (typeof obj === 'string')  return `<span style="color:#059669">"${obj}"</span>`;
+  if (Array.isArray(obj)) {
+    if (obj.length === 0) return '<span style="color:#94a3b8">[]</span>';
+    if (typeof obj[0] === 'string') return obj.map(i=>`<div class="r-list-item">${i}</div>`).join('');
+    return obj.map((item,i)=>`<div style="margin-bottom:8px;padding:8px;background:#f8fafc;border-radius:6px;border-left:3px solid var(--brand)"><div style="font-size:10px;color:var(--faint);margin-bottom:4px">#${i+1}</div>${renderObj(item,depth+1)}</div>`).join('');
+  }
+  if (typeof obj === 'object') {
+    return Object.entries(obj).map(([k,v])=>{
+      const keyFmt = k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+      if (typeof v === 'object' && v !== null) {
+        return `<div class="r-section"><div class="r-title">${keyFmt}</div>${renderObj(v, depth+1)}</div>`;
+      }
+      return `<div class="r-row"><span class="r-key">${keyFmt}</span><span class="r-val">${renderObj(v,depth+1)}</span></div>`;
+    }).join('');
+  }
+  return String(obj);
+}
+
+// ── Intelligence page factory ──────────────────────────────────────────────
+function intelPage(pageId, icon, title, style, moduleType, urlModule, action, formFn, hasDl=false) {
+  document.getElementById('page-content').innerHTML = `
+  <div class="module-banner" style="${style}">
+    <span style="font-size:28px">${icon}</span>
+    <div><div style="font-size:14px;font-weight:600">${title}</div><div style="font-size:12px;opacity:.8">${document.getElementById('page-sub').textContent}</div></div>
+  </div>
+  <div class="intel-2col">
+    <div class="card" style="padding:20px">
+      <div class="section-title">Analysis Input</div>
+      <div id="intel-form">${formFn()}</div>
+      <button class="btn btn-primary btn-full" style="margin-top:16px" id="run-btn" onclick="runIntel('${urlModule}','${action}','${moduleType}')">
+        ✨ Run ${title.split(' ')[0]} Analysis
+      </button>
+    </div>
+    <div style="min-width:0">
+      <div id="job-status-area"></div>
+      <div id="report-area">
+        <div class="card" style="padding:30px;text-align:center;color:var(--muted)">
+          <div style="font-size:32px;margin-bottom:10px">${icon}</div>
+          <div style="font-weight:500">Awaiting analysis</div>
+          <div style="font-size:12px;margin-top:4px">Fill in the form and click Run to generate AI insights</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:24px" id="prev-reports-section"></div>`;
+  loadPrevReports(urlModule, moduleType);
+}
+
+async function loadPrevReports(urlModule, moduleType) {
+  try {
+    const data = await api('GET',`/api/v1/intelligence/${urlModule}/reports/`);
+    const reports = data.results || data || [];
+    if (!reports.length) return;
+    const section = document.getElementById('prev-reports-section');
+    if (!section) return;
+    section.innerHTML = `
+    <div class="section-title">Previous Reports (${reports.length})</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
+      ${reports.slice(0,6).map(r=>`
+      <div class="card-hover" style="padding:14px;cursor:pointer" onclick="showJobResult('${r.id||r.job_id}')">
+        <div style="display:flex;justify-content:space-between;align-items:start;gap:8px;margin-bottom:6px">
+          <div style="font-size:12px;font-weight:500">${(r.module_type||moduleType).replace(/_/g,' ')}</div>
+          ${statusBadge(r.status||'completed')}
+        </div>
+        <div style="font-size:11px;color:var(--faint)">${r.project_title||''} · ${fmtDate(r.created_at)}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${r.tokens_used||0} tokens</div>
+      </div>`).join('')}
+    </div>`;
+  } catch(e) {}
+}
+
+async function runIntel(urlModule, action, moduleType) {
+  const projId = document.getElementById('intel-project')?.value;
+  if (!projId) { toast('Please select a project first','error'); return; }
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true; btn.textContent = '⏳ Running…';
+
+  const formData = collectFormData();
+  formData.project_id = projId;
+
+  document.getElementById('job-status-area').innerHTML = `
+  <div class="job-card processing" style="margin-bottom:16px">
+    <div class="job-icon" style="background:#f3e8ff">⏳</div>
+    <div style="flex:1">
+      <div style="font-size:13px;font-weight:500">AI analysis running…</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">Processing your request</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:70%"></div></div>
+    </div>
+  </div>`;
+
+  try {
+    let endpoint = `/api/v1/intelligence/${urlModule}/${action}/`;
+    let payload = formData;
+    // Handle file upload for analytical
+    if (urlModule === 'analytical') {
+      const fileInput = document.getElementById('analytic-image');
+      if (fileInput?.files[0]) {
+        const fd = new FormData();
+        Object.entries(formData).forEach(([k,v])=>fd.append(k,v));
+        fd.append('image', fileInput.files[0]);
+        payload = fd;
+      }
+    }
+    const isForm = payload instanceof FormData;
+    const result = await api('POST', endpoint, payload, isForm);
+
+    if (result.error) { toast(result.message||'Analysis failed','error'); btn.disabled=false; btn.textContent='✨ Run Analysis'; return; }
+
+    const jobId = result.job_id;
+    // For demo, status is immediate
+    const jobResult = await api('GET', `/api/v1/projects/jobs/${jobId}/result/`);
+    const output = jobResult.output_payload || {};
+
+    document.getElementById('job-status-area').innerHTML = `
+    <div class="job-card completed" style="margin-bottom:16px">
+      <div class="job-icon" style="background:#dcfce7;font-size:20px">✅</div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500;color:#15803d">Analysis complete!</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">Job ID: ${jobId.slice(0,8)}… · ${jobResult.tokens_used||0} tokens used</div>
+        ${moduleType==='dossier'?`<div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-primary btn-sm" onclick="downloadDossierPdf('${jobId}')">⬇ PDF</button><button class="btn btn-secondary btn-sm" onclick="downloadDossierJson('${jobId}')">⬇ JSON</button></div>`:''}
+        ${moduleType==='research_asst'?`<button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="downloadResearchPdf('${jobId}')">⬇ Download PDF</button>`:''}
+      </div>
+    </div>`;
+    document.getElementById('report-area').innerHTML = renderReport(output);
+    toast('Analysis complete!','success');
+  } catch(e) {
+    console.error(e);
+    document.getElementById('job-status-area').innerHTML = `<div class="job-card failed" style="margin-bottom:16px"><div class="job-icon" style="background:#fee2e2">❌</div><div><div style="font-size:13px;font-weight:500;color:#b91c1c">Analysis failed</div><div style="font-size:11px;color:var(--muted)">Check console for details</div></div></div>`;
+    toast('Analysis failed — check server logs','error');
+  }
+  btn.disabled=false; btn.textContent='✨ Run Analysis';
+}
+
+function collectFormData() {
+  const result = {};
+  document.querySelectorAll('#intel-form [data-field]').forEach(el=>{
+    const k = el.getAttribute('data-field');
+    if (el.tagName==='INPUT'||el.tagName==='SELECT'||el.tagName==='TEXTAREA') result[k] = el.value;
+  });
+  // chips (multi-select)
+  document.querySelectorAll('#intel-form [data-chips]').forEach(container=>{
+    const k = container.getAttribute('data-chips');
+    result[k] = Array.from(container.querySelectorAll('.chip.active')).map(c=>c.textContent.trim());
+  });
+  return result;
+}
+
+async function projectOptions() {
+  try {
+    const data = await api('GET','/api/v1/projects/?status=active');
+    const ps = data.results||data||[];
+    return ps.map(p=>`<option value="${p.id}">${p.title}</option>`).join('');
+  } catch(e) { return ''; }
+}
+
+// ── Form templates ─────────────────────────────────────────────────────────
+let _projOpts = null;
+async function getProjectSelect() {
+  // Always fetch fresh projects and populate after DOM renders
+  setTimeout(async () => {
+    const sel = document.getElementById('intel-project');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Loading projects...</option>';
+    try {
+      const data = await api('GET', '/api/v1/projects/');
+      const ps = (data.results || data || []).filter(p => p.status !== 'archived');
+      if (ps.length === 0) {
+        sel.innerHTML = '<option value="">No projects found — create one first</option>';
+      } else {
+        sel.innerHTML = '<option value="">— Select project —</option>' +
+          ps.map(p => `<option value="${p.id}">${p.title}</option>`).join('');
+      }
+    } catch(e) {
+      sel.innerHTML = '<option value="">Error loading projects</option>';
+    }
+  }, 200);
+  return `<select id="intel-project"><option value="">Loading...</option></select>`;
+}
+
+function diseaseForm() {
+  getProjectSelect();
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Disease / Condition *</label><input data-field="disease" placeholder="e.g. Type 2 Diabetes Mellitus"></div>
+  <div class="form-group"><label>Healthcare Problem *</label><textarea data-field="healthcare_problem" rows="3" placeholder="Describe the specific unmet need or clinical gap"></textarea></div>
+  <div class="form-group"><label>Target Population *</label><input data-field="target_population" placeholder="e.g. Adults 40–70 in rural India"></div>`;
+}
+
+function formulationForm() {
+  getProjectSelect();
+  const ptypes = ['Ayurvedic','Allopathic','Nutraceutical','Homeopathic','Biologic','Cosmeceutical'];
+  const dforms = ['Tablet','Capsule','Syrup','Cream','Gel','Injection','Patch','Drops','Suspension'];
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Disease / Indication *</label><input data-field="disease" placeholder="e.g. Type 2 Diabetes"></div>
+  <div class="grid-2">
+    <div class="form-group"><label>Product Type</label><select data-field="product_type">${ptypes.map(t=>`<option>${t}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Dosage Form</label><select data-field="dosage_form">${dforms.map(d=>`<option>${d}</option>`).join('')}</select></div>
+  </div>
+  <div class="form-group"><label>Additional Context</label><textarea data-field="additional_context" rows="2" placeholder="Focus herbs, special requirements, etc."></textarea></div>`;
+}
+
+function literatureForm() {
+  getProjectSelect();
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Research Topic *</label><input data-field="topic" placeholder="e.g. Bitter Melon in Type 2 Diabetes management — RCTs"></div>
+  <div class="form-group"><label>Year Range</label><input data-field="year_range" value="2019-2024" placeholder="e.g. 2019-2024"></div>
+  <div class="form-group"><label>Additional Context</label><textarea data-field="context" rows="2" placeholder="Specific aspects, geographic region, patient population…"></textarea></div>`;
+}
+
+function regulatoryForm() {
+  getProjectSelect();
+  const auths = ['CDSCO','AYUSH','FSSAI','USFDA','EMA','WHO','TGA','Health Canada'];
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Disease *</label><input data-field="disease" placeholder="e.g. Hypertension"></div>
+  <div class="grid-2">
+    <div class="form-group"><label>Product Type *</label><input data-field="product_type" placeholder="e.g. Fixed Dose Combination"></div>
+    <div class="form-group"><label>Dosage Form</label><input data-field="dosage_form" placeholder="e.g. Tablet"></div>
+  </div>
+  <div class="form-group"><label>Target Regulatory Authorities</label>
+    <div class="chip-group" data-chips="target_markets">${auths.map(a=>`<span class="chip" onclick="this.classList.toggle('active')">${a}</span>`).join('')}</div>
+  </div>`;
+}
+
+function patentForm() {
+  getProjectSelect();
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Invention Description *</label><textarea data-field="invention_description" rows="5" placeholder="Describe your invention — composition, method, novel features, technical problem solved…"></textarea></div>
+  <div class="grid-2">
+    <div class="form-group"><label>Disease / Field *</label><input data-field="disease" placeholder="e.g. Diabetes"></div>
+    <div class="form-group"><label>Product Type *</label><input data-field="product_type" placeholder="e.g. Herbal Tablet"></div>
+  </div>`;
+}
+
+function stabilityForm() {
+  getProjectSelect();
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Product Name *</label><input data-field="product_name" placeholder="e.g. GlycoHerb-DS Tablet"></div>
+  <div class="form-group"><label>Dosage Form</label><input data-field="dosage_form" placeholder="e.g. Film-Coated Tablet"></div>
+  <div class="form-group"><label>Storage Condition</label><input data-field="storage_condition" value="25°C/60% RH" placeholder="e.g. 25°C/60% RH"></div>
+  <div class="form-group"><label>Active Ingredients (comma-separated)</label><input data-field="active_ingredients" placeholder="e.g. Bitter Melon Extract, Fenugreek Extract"></div>`;
+}
+
+function analyticalForm() {
+  getProjectSelect();
+  const types = ['hplc','hptlc','ftir','uv_vis'];
+  const labels = {'hplc':'HPLC Chromatogram','hptlc':'HPTLC Plate','ftir':'FTIR Spectrum','uv_vis':'UV-Vis Spectrum'};
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Image Type *</label>
+    <div class="chip-group" style="flex-direction:column;gap:6px">${types.map((t,i)=>`
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;border:1px solid var(--border);border-radius:8px">
+      <input type="radio" name="img-type" value="${t}" ${i===0?'checked':''} data-field="image_type" style="width:auto">
+      <div><div style="font-size:12px;font-weight:500">${labels[t]}</div></div>
+    </label>`).join('')}
+    </div>
+  </div>
+  <div class="form-group"><label>Upload Image (PNG/JPEG, max 20MB)</label>
+    <input type="file" id="analytic-image" accept="image/*" style="padding:6px">
+  </div>
+  <div class="form-group"><label>Analysis Context (optional)</label><textarea data-field="context" rows="2" placeholder="e.g. C18 column, 254nm detection, mobile phase…"></textarea></div>`;
+}
+
+function manufacturingForm() {
+  getProjectSelect();
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Product Name *</label><input data-field="product_name" placeholder="e.g. GlycoHerb-DS Tablet"></div>
+  <div class="grid-2">
+    <div class="form-group"><label>Dosage Form</label><input data-field="dosage_form" value="Tablet" placeholder="Tablet"></div>
+    <div class="form-group"><label>Batch Size</label><input data-field="batch_size" value="100,000 units" placeholder="100,000 units"></div>
+  </div>
+  <div class="form-group"><label>Product Type</label><input data-field="product_type" value="Pharmaceutical" placeholder="Pharmaceutical"></div>
+  <div class="form-group"><label>Active Ingredients</label><input data-field="active_ingredients" placeholder="e.g. Bitter Melon Extract 250mg, Fenugreek 125mg"></div>`;
+}
+
+function costForm() {
+  getProjectSelect();
+  const markets = ['India','USA','Europe','UK','Australia','Middle East'];
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Product Name *</label><input data-field="product_name" placeholder="e.g. GlycoHerb-DS Tablet"></div>
+  <div class="grid-2">
+    <div class="form-group"><label>Dosage Form</label><input data-field="dosage_form" value="Tablet"></div>
+    <div class="form-group"><label>Batch Size</label><input data-field="batch_size" value="100,000 units"></div>
+  </div>
+  <div class="form-group"><label>Target Market</label>
+    <div class="chip-group" data-chips="target_market">${markets.map((m,i)=>`<span class="chip ${i===0?'active':''}" onclick="document.querySelectorAll('[data-chips=target_market] .chip').forEach(c=>c.classList.remove('active'));this.classList.add('active')">${m}</span>`).join('')}</div>
+  </div>
+  <div class="form-group"><label>Active Ingredients</label><input data-field="active_ingredients" placeholder="e.g. Bitter Melon Extract, Fenugreek Extract"></div>`;
+}
+
+function dossierForm() {
+  getProjectSelect();
+  const dtypes = [['full_ctd','Full CTD Dossier','5-module Common Technical Document'],['pdr','Product Development Report','ICH Q8 development report'],['executive_summary','Executive Summary','High-level management brief']];
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="grid-2">
+    <div class="form-group"><label>Product Name *</label><input data-field="product_name" placeholder="e.g. GlycoHerb-DS Tablet"></div>
+    <div class="form-group"><label>Disease *</label><input data-field="disease" placeholder="e.g. Type 2 Diabetes"></div>
+  </div>
+  <div class="grid-2">
+    <div class="form-group"><label>Dosage Form</label><input data-field="dosage_form" placeholder="Film-Coated Tablet"></div>
+    <div class="form-group"><label>Product Type</label><input data-field="product_type" placeholder="Ayurvedic"></div>
+  </div>
+  <div class="form-group"><label>Document Type</label>
+    ${dtypes.map(([v,l,d],i)=>`
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
+      <input type="radio" name="doc-type" value="${v}" ${i===0?'checked':''} data-field="doc_type" style="width:auto">
+      <div><div style="font-size:12px;font-weight:500">${l}</div><div style="font-size:11px;color:var(--muted)">${d}</div></div>
+    </label>`).join('')}
+  </div>`;
+}
+
+function researchForm() {
+  getProjectSelect();
+  const dtypes = [['research_proposal','Research Proposal'],['synopsis','Synopsis'],['protocol','Clinical Protocol'],['publication_draft','Publication Draft'],['review_article','Review Article']];
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Document Type</label>
+    <div class="chip-group">${dtypes.map(([v,l],i)=>`<span class="chip ${i===0?'active':''}" onclick="document.querySelectorAll('#intel-form .chip').forEach(c=>c.classList.remove('active'));this.classList.add('active');document.querySelector('[data-field=doc_type]').value='${v}'">${l}</span>`).join('')}
+    <input type="hidden" data-field="doc_type" value="research_proposal"></div>
+  </div>
+  <div class="form-group"><label>Research Title *</label><input data-field="title" placeholder="Full research title"></div>
+  <div class="form-group"><label>Disease / Research Area *</label><input data-field="disease" placeholder="e.g. Type 2 Diabetes"></div>
+  <div class="form-group"><label>Primary Objective *</label><textarea data-field="objective" rows="2" placeholder="State the primary research objective…"></textarea></div>
+  <div class="form-group"><label>Background Context</label><textarea data-field="context" rows="2" placeholder="Relevant background, previous work, rationale…"></textarea></div>`;
+}
+
+// ── Downloads ──────────────────────────────────────────────────────────────
+async function downloadDossierPdf(jobId) {
+  toast('Generating PDF…','info');
+  try {
+    const resp = await fetch(`/api/v1/intelligence/dossier/reports/${jobId}/download/pdf/`,
+      {headers: {Authorization: 'Bearer '+AUTH.token}});
+    if (!resp.ok) { toast('PDF generation failed','error'); return; }
+    const blob = await resp.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = 'dossier_report.pdf';
+    a.click(); URL.revokeObjectURL(url);
+    toast('PDF downloaded!','success');
+  } catch(e) { toast('Download failed','error'); }
+}
+
+async function downloadDossierJson(jobId) {
+  toast('Preparing JSON…','info');
+  try {
+    const resp = await fetch(`/api/v1/intelligence/dossier/reports/${jobId}/download/json/`,
+      {headers: {Authorization: 'Bearer '+AUTH.token}});
+    const blob = await resp.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = 'dossier_report.json';
+    a.click(); URL.revokeObjectURL(url);
+    toast('JSON downloaded!','success');
+  } catch(e) { toast('Download failed','error'); }
+}
+
+async function downloadResearchPdf(jobId) {
+  toast('Generating PDF…','info');
+  try {
+    const resp = await fetch(`/api/v1/intelligence/research/documents/${jobId}/download/`,
+      {headers: {Authorization: 'Bearer '+AUTH.token}});
+    if (!resp.ok) { toast('PDF generation failed','error'); return; }
+    const blob = await resp.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = 'research_document.pdf';
+    a.click(); URL.revokeObjectURL(url);
+    toast('PDF downloaded!','success');
+  } catch(e) { toast('Download failed','error'); }
+}
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+(function init() {
+  const token = localStorage.getItem('aipbios_token');
+  const user  = localStorage.getItem('aipbios_user');
+  if (token && user) {
+    AUTH = {token, user: JSON.parse(user)};
+    showDashboard();
+  } else {
+    document.getElementById('auth-screen').style.display='flex';
+  }
+})();
+</script>
+</body>
+</html>
