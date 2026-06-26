@@ -463,6 +463,7 @@ def make_intel_route(module_name, url_name, action):
                methods=['POST'], endpoint=f'intel_{module_name}')
     @auth_required
     def handler():
+      try:
         d = request.get_json() or {}
         if request.content_type and 'multipart' in request.content_type:
             d = {k: request.form.get(k,'') for k in request.form}
@@ -477,16 +478,26 @@ def make_intel_route(module_name, url_name, action):
         t = now()
 
         # Call OpenAI if key is set, else use fallback
-        if os.environ.get('OPENAI_API_KEY','') and module_name in MODULE_PROMPTS:
-            system_prompt, user_prompt_fn = MODULE_PROMPTS[module_name]
-            user_prompt = user_prompt_fn(d)
-            output, tokens = call_openai(system_prompt, user_prompt)
-            if output is None:
+        api_key = os.environ.get('OPENAI_API_KEY','')
+        if api_key and module_name in MODULE_PROMPTS:
+            try:
+                system_prompt, user_prompt_fn = MODULE_PROMPTS[module_name]
+                user_prompt = user_prompt_fn(d)
+                output, tokens = call_openai(system_prompt, user_prompt)
+                if output is None:
+                    print(f"OpenAI returned None: {tokens}")
+                    output = fallback_report(module_name, d)
+                    tokens = 0
+            except Exception as e:
+                print(f"OpenAI call exception: {e}")
                 output = fallback_report(module_name, d)
                 tokens = 0
         else:
             output = fallback_report(module_name, d)
             tokens = 0
+
+        if output is None:
+            output = fallback_report(module_name, d)
 
         jid = uid()
         q('INSERT INTO intelligence_jobs(id,project_id,created_by,module_type,status,input_payload,output_payload,tokens_used,created_at,completed_at) VALUES(?,?,?,?,?,?,?,?,?,?)',
