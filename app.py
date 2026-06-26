@@ -674,9 +674,23 @@ def api_status():
 @app.route('/<path:path>')
 def serve_frontend(path):
     static_dir = os.path.join(BASE_DIR, 'static')
+    # Serve API routes normally
+    if path.startswith('api/') or path.startswith('health'):
+        return jsonify({'error': 'Not found'}), 404
+    # Serve static files
     if path and os.path.exists(os.path.join(static_dir, path)):
         return send_from_directory(static_dir, path)
-    return send_from_directory(static_dir, 'index.html')
+    # Always serve index.html for everything else
+    index_path = os.path.join(static_dir, 'index.html')
+    if os.path.exists(index_path):
+        return send_from_directory(static_dir, 'index.html')
+    # Fallback - return basic HTML if index.html missing
+    return '''<!DOCTYPE html><html><head><title>AIPBIOS</title></head>
+<body style="font-family:sans-serif;text-align:center;padding:50px;background:#0f172a;color:white">
+<h1>🧬 AIPBIOS</h1><p>AI Intelligence Platform</p>
+<p style="color:#94a3b8">Loading...</p>
+<script>setTimeout(()=>location.reload(),3000)</script>
+</body></html>''', 200
 
 # ── SEED DATA ─────────────────────────────────────────────────────────────────
 def seed():
