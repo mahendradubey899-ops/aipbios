@@ -463,7 +463,6 @@ def make_intel_route(module_name, url_name, action):
                methods=['POST'], endpoint=f'intel_{module_name}')
     @auth_required
     def handler():
-      try:
         d = request.get_json() or {}
         if request.content_type and 'multipart' in request.content_type:
             d = {k: request.form.get(k,'') for k in request.form}
@@ -495,9 +494,6 @@ def make_intel_route(module_name, url_name, action):
         else:
             output = fallback_report(module_name, d)
             tokens = 0
-
-        if output is None:
-            output = fallback_report(module_name, d)
 
         jid = uid()
         q('INSERT INTO intelligence_jobs(id,project_id,created_by,module_type,status,input_payload,output_payload,tokens_used,created_at,completed_at) VALUES(?,?,?,?,?,?,?,?,?,?)',
