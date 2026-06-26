@@ -478,20 +478,25 @@ def make_intel_route(module_name, url_name, action):
 
         # Call OpenAI if key is set, else use fallback
         api_key = os.environ.get('OPENAI_API_KEY','')
+        print(f"DEBUG: api_key present={bool(api_key)}, module={module_name}, disease={d.get('disease','')}")
         if api_key and module_name in MODULE_PROMPTS:
             try:
                 system_prompt, user_prompt_fn = MODULE_PROMPTS[module_name]
                 user_prompt = user_prompt_fn(d)
+                print(f"DEBUG: Calling OpenAI for {module_name}")
                 output, tokens = call_openai(system_prompt, user_prompt)
+                print(f"DEBUG: OpenAI response: output_type={type(output)}, tokens={tokens}")
                 if output is None:
-                    print(f"OpenAI returned None: {tokens}")
+                    print(f"DEBUG: OpenAI returned None, error: {tokens}")
                     output = fallback_report(module_name, d)
                     tokens = 0
             except Exception as e:
-                print(f"OpenAI call exception: {e}")
+                import traceback
+                print(f"DEBUG: Exception: {traceback.format_exc()}")
                 output = fallback_report(module_name, d)
                 tokens = 0
         else:
+            print(f"DEBUG: Using fallback - api_key={bool(api_key)}, in_prompts={module_name in MODULE_PROMPTS}")
             output = fallback_report(module_name, d)
             tokens = 0
 
