@@ -15,11 +15,12 @@ SECRET   = 'aipbios-live-prototype-secret-2024'
 app      = Flask(__name__, static_folder=os.path.join(BASE_DIR, 'static'))
 
 # ── OpenAI setup ──────────────────────────────────────────────────────────────
-OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
+# OPENAI_API_KEY read dynamically in call_openai to pick up env changes
 
 def call_openai(system_prompt, user_prompt, model='gpt-4o'):
     """Call OpenAI and return parsed JSON output."""
-    if not OPENAI_API_KEY:
+    api_key = os.environ.get('OPENAI_API_KEY', '')
+    if not api_key:
         return None, "OPENAI_API_KEY not set"
     try:
         import urllib.request as ur
@@ -38,7 +39,7 @@ def call_openai(system_prompt, user_prompt, model='gpt-4o'):
             data=payload,
             headers={
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {OPENAI_API_KEY}"
+                "Authorization": f"Bearer {api_key}"
             },
             method="POST"
         )
@@ -476,7 +477,7 @@ def make_intel_route(module_name, url_name, action):
         t = now()
 
         # Call OpenAI if key is set, else use fallback
-        if OPENAI_API_KEY and module_name in MODULE_PROMPTS:
+        if os.environ.get('OPENAI_API_KEY','') and module_name in MODULE_PROMPTS:
             system_prompt, user_prompt_fn = MODULE_PROMPTS[module_name]
             user_prompt = user_prompt_fn(d)
             output, tokens = call_openai(system_prompt, user_prompt)
@@ -665,9 +666,10 @@ def health():
 
 @app.route('/api/status')
 def api_status():
+    key = os.environ.get('OPENAI_API_KEY','')
     return jsonify({
-        'openai_connected': bool(OPENAI_API_KEY),
-        'mode': 'Live AI — any disease supported' if OPENAI_API_KEY else 'Demo mode — add OPENAI_API_KEY for live AI'
+        'openai_connected': bool(key),
+        'mode': 'Live AI — any disease supported' if key else 'Demo mode — add OPENAI_API_KEY for live AI'
     })
 
 # ── STATIC / FRONTEND ─────────────────────────────────────────────────────────
