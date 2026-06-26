@@ -506,7 +506,7 @@ def make_intel_route(module_name, url_name, action):
             'job_id':   jid,
             'status':   'completed',
             'message':  f'{module_name.replace("_"," ").title()} analysis complete.',
-            'ai_used':  bool(OPENAI_API_KEY),
+            'ai_used':  bool(os.environ.get('OPENAI_API_KEY','')),
             'poll_url': f'/api/v1/projects/jobs/{jid}/status/'
         }), 202
 
@@ -668,7 +668,7 @@ def health():
         'service': 'AIPBIOS',
         'version': '2.0.0',
         'db':      'SQLite',
-        'ai_mode': 'live' if OPENAI_API_KEY else 'demo'
+        'ai_mode': 'live' if os.environ.get('OPENAI_API_KEY','') else 'demo'
     })
 
 @app.route('/api/status')
@@ -750,6 +750,6 @@ except Exception as e:
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8000))
-    mode = 'LIVE AI MODE' if OPENAI_API_KEY else 'DEMO MODE'
+    mode = 'LIVE AI MODE' if os.environ.get('OPENAI_API_KEY','') else 'DEMO MODE'
     print(f"AIPBIOS starting — {mode} on port {port}")
     app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
