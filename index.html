@@ -980,15 +980,24 @@ function diseaseForm() {
 function formulationForm() {
   getProjectSelect();
   const ptypes = ['Ayurvedic','Allopathic','Nutraceutical','Homeopathic','Biologic','Cosmeceutical'];
-  const dforms = ['Tablet','Capsule','Syrup','Cream','Gel','Injection','Patch','Drops','Suspension'];
+  const dforms = ['Tablet','Capsule','Syrup','Cream','Gel','Ointment','Injection','Patch','Drops','Suspension','Powder','Granules'];
+  const bsizes = ['10,000 units','50,000 units','100,000 units','500,000 units','1,000,000 units'];
   return `
   <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
-  <div class="form-group"><label>Disease / Indication *</label><input data-field="disease" placeholder="e.g. Type 2 Diabetes"></div>
+  <div class="form-group"><label>Disease / Indication *</label><input data-field="disease" placeholder="e.g. Type 2 Diabetes Mellitus"></div>
   <div class="grid-2">
     <div class="form-group"><label>Product Type</label><select data-field="product_type">${ptypes.map(t=>`<option>${t}</option>`).join('')}</select></div>
     <div class="form-group"><label>Dosage Form</label><select data-field="dosage_form">${dforms.map(d=>`<option>${d}</option>`).join('')}</select></div>
   </div>
-  <div class="form-group"><label>Additional Context</label><textarea data-field="additional_context" rows="2" placeholder="Focus herbs, special requirements, etc."></textarea></div>`;
+  <div class="grid-2">
+    <div class="form-group"><label>Batch Size</label><select data-field="batch_size">${bsizes.map(s=>`<option>${s}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Route</label><select data-field="route"><option>Oral</option><option>Topical</option><option>Parenteral</option><option>Inhalation</option><option>Ophthalmic</option></select></div>
+  </div>
+  <div class="form-group">
+    <label>Preferred Active Ingredients <span style="font-size:11px;color:var(--faint)">(optional — AI will suggest if blank)</span></label>
+    <textarea data-field="active_ingredients" rows="2" placeholder="e.g. Bitter Melon Extract, Fenugreek Seed Extract, Metformin HCl..."></textarea>
+  </div>
+  <div class="form-group"><label>Special Requirements</label><textarea data-field="additional_context" rows="2" placeholder="e.g. Sugar-free, paediatric friendly, sustained release, halal certified..."></textarea></div>`;
 }
 
 function literatureForm() {
@@ -1109,17 +1118,30 @@ function dossierForm() {
 
 function researchForm() {
   getProjectSelect();
-  const dtypes = [['research_proposal','Research Proposal'],['synopsis','Synopsis'],['protocol','Clinical Protocol'],['publication_draft','Publication Draft'],['review_article','Review Article']];
+  const dtypes = [
+    ['research_proposal','Research Proposal','Full grant-ready proposal with budget'],
+    ['synopsis','Synopsis','2-page brief overview'],
+    ['protocol','Clinical Protocol','ICH E6 GCP-compliant trial protocol'],
+    ['publication_draft','Publication Draft','Journal manuscript with structured sections'],
+    ['review_article','Review Article','Systematic or narrative review'],
+    ['statistical_validation','Statistical Validation Plan','Pre-execution validation with sample size, models, dosing'],
+  ];
   return `
   <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
   <div class="form-group"><label>Document Type</label>
-    <div class="chip-group">${dtypes.map(([v,l],i)=>`<span class="chip ${i===0?'active':''}" onclick="document.querySelectorAll('#intel-form .chip').forEach(c=>c.classList.remove('active'));this.classList.add('active');document.querySelector('[data-field=doc_type]').value='${v}'">${l}</span>`).join('')}
-    <input type="hidden" data-field="doc_type" value="research_proposal"></div>
+    <div style="display:grid;grid-template-columns:1fr;gap:6px;margin-top:6px">
+    ${dtypes.map(([v,l,d],i)=>`
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border:1px solid var(--border);border-radius:8px;transition:.15s" onmouseover="this.style.borderColor='#2563eb'" onmouseout="this.style.borderColor=this.querySelector('input').checked?'#2563eb':'var(--border)'">
+      <input type="radio" name="doc-type-r" value="${v}" ${i===0?'checked':''} style="width:auto;flex-shrink:0" onchange="document.querySelector('[data-field=doc_type]').value='${v}'">
+      <div><div style="font-size:12px;font-weight:600">${l}</div><div style="font-size:11px;color:var(--muted)">${d}</div></div>
+    </label>`).join('')}
+    <input type="hidden" data-field="doc_type" value="research_proposal">
+    </div>
   </div>
-  <div class="form-group"><label>Research Title *</label><input data-field="title" placeholder="Full research title"></div>
-  <div class="form-group"><label>Disease / Research Area *</label><input data-field="disease" placeholder="e.g. Type 2 Diabetes"></div>
-  <div class="form-group"><label>Primary Objective *</label><textarea data-field="objective" rows="2" placeholder="State the primary research objective…"></textarea></div>
-  <div class="form-group"><label>Background Context</label><textarea data-field="context" rows="2" placeholder="Relevant background, previous work, rationale…"></textarea></div>`;
+  <div class="form-group"><label>Research Title *</label><input data-field="title" placeholder="Full descriptive research title"></div>
+  <div class="form-group"><label>Disease / Research Area *</label><input data-field="disease" placeholder="e.g. Type 2 Diabetes Mellitus"></div>
+  <div class="form-group"><label>Primary Objective *</label><textarea data-field="objective" rows="2" placeholder="State the primary research objective clearly and measurably"></textarea></div>
+  <div class="form-group"><label>Background / Hypothesis</label><textarea data-field="context" rows="2" placeholder="Brief background, hypothesis, and rationale for the study"></textarea></div>`;
 }
 
 // ── Downloads ──────────────────────────────────────────────────────────────
