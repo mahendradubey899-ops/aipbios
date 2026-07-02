@@ -154,6 +154,13 @@ def auth_required(f):
 
 # ── Prompts ───────────────────────────────────────────────────────────────────
 try:
+    from knowledge_base import build_disease_context_string, get_regulatory_context, verify_pubmed_citation
+except ImportError:
+    def build_disease_context_string(d): return ''
+    def get_regulatory_context(d): return {}
+    def verify_pubmed_citation(p): return None
+
+try:
     from prompts import (
         DISEASE_SYSTEM, FORMULATION_SYSTEM, LITERATURE_SYSTEM,
         REGULATORY_SYSTEM, PATENT_SYSTEM, STABILITY_SYSTEM,
@@ -863,148 +870,175 @@ def highlight_box(text, styles, bg=None, border=None):
 # ── MASTER PDF GENERATOR ───────────────────────────────────────────────────────
 def generate_report_pdf(output_data: dict, module_type: str, title: str,
                         input_data: dict = None) -> bytes:
-    """
-    Universal PDF generator for all AIPBIOS modules.
-    Renders output_data intelligently based on module_type.
-    Returns PDF bytes.
-    """
+    """Professional PDF generation with cover page, watermark, and structured layout."""
     buf = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buf, pagesize=A4,
-        leftMargin=1.5*cm, rightMargin=1.5*cm,
-        topMargin=1.8*cm, bottomMargin=1.8*cm,
-    )
+    doc = SimpleDocTemplate(buf, pagesize=A4,
+        leftMargin=1.8*cm, rightMargin=1.8*cm,
+        topMargin=2.0*cm, bottomMargin=1.8*cm)
     styles = get_styles()
     story = []
 
-    # ── Cover / title block ──────────────────────────────────────────────────
-    story.append(Spacer(1, 0.8*cm))
+    # ── COVER PAGE ──────────────────────────────────────────────────────────
+    story.append(Spacer(1, 3*cm))
+
+    # Big logo area
+    cover_table = Table([[
+        Paragraph('<font color="#1a3a5c"><b>AIPBIOS</b></font>', ParagraphStyle(
+            'CoverLogo', fontName='Helvetica-Bold', fontSize=36,
+            textColor=colors.HexColor('#1a3a5c'), alignment=TA_CENTER))
+    ]], colWidths=[A4[0]-3.6*cm])
+    cover_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#eff6ff')),
+        ('BOX', (0,0), (-1,-1), 2, colors.HexColor('#1a3a5c')),
+        ('TOPPADDING', (0,0), (-1,-1), 20),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 20),
+    ]))
+    story.append(cover_table)
+    story.append(Spacer(1, 0.5*cm))
+
+    story.append(Paragraph('AI Intelligence Platform for Healthcare & Pharma',
+        ParagraphStyle('CoverSub', fontName='Helvetica', fontSize=12,
+            textColor=colors.HexColor('#0d9488'), alignment=TA_CENTER)))
+    story.append(Spacer(1, 2*cm))
+
     # Module badge
     module_labels = {
-        'disease_intel': 'Disease Intelligence Report',
-        'formulation_intel': 'Formulation Intelligence Report',
-        'literature_intel': 'Literature Intelligence Report',
-        'regulatory_intel': 'Regulatory Intelligence Report',
-        'patent_intel': 'Patent Intelligence Report',
-        'stability_intel': 'Stability Intelligence Report',
-        'analytical_intel': 'Analytical Intelligence Report',
-        'manufacturing_intel': 'Manufacturing Intelligence Report',
-        'cost_intel': 'Cost Intelligence Report',
-        'dossier': 'Regulatory Dossier',
-        'research_asst': 'Research Intelligence Report',
-        'microbiology_intel': 'Microbiological Intelligence Report',
-        'statistical_intel': 'Statistical Analysis Report',
+        'disease_intel': '🔬 Disease Intelligence Report',
+        'formulation_intel': '💊 Formulation Intelligence Report',
+        'literature_intel': '📚 Literature Intelligence Report',
+        'regulatory_intel': '🛡 Regulatory Intelligence Report',
+        'patent_intel': '🔎 Patent Intelligence Report',
+        'stability_intel': '🌡 Stability Intelligence Report',
+        'analytical_intel': '📈 Analytical Intelligence Report',
+        'manufacturing_intel': '🏭 Manufacturing Intelligence Report',
+        'cost_intel': '💰 Cost Intelligence Report',
+        'dossier': '📄 Regulatory Dossier',
+        'research_asst': '🎓 Research Intelligence Report',
+        'microbiology_intel': '🦠 Microbiological Intelligence Report',
+        'statistical_intel': '📊 Statistical Analysis Report',
+        'preclinical_intel': '🐭 Preclinical Intelligence Report',
+        'clinical_intel': '🏥 Clinical Development Report',
     }
-    badge_text = module_labels.get(module_type, 'Intelligence Report')
-    badge_table = Table([[Paragraph(badge_text, styles['badge_label'])]],
-                        colWidths=[8*cm])
-    badge_table.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,-1), BRAND_TEAL),
-        ('TOPPADDING', (0,0), (-1,-1), 5),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 5),
-        ('LEFTPADDING', (0,0), (-1,-1), 10),
-        ('RIGHTPADDING', (0,0), (-1,-1), 10),
-        ('ROUNDEDCORNERS', [4]),
-    ]))
-    story.append(badge_table)
-    story.append(Spacer(1, 0.3*cm))
-    story.append(Paragraph(title, styles['title']))
+    badge = module_labels.get(module_type, 'Intelligence Report')
+    story.append(Paragraph(badge, ParagraphStyle('Badge',
+        fontName='Helvetica-Bold', fontSize=16,
+        textColor=colors.HexColor('#1a3a5c'), alignment=TA_CENTER)))
+    story.append(Spacer(1, 0.5*cm))
 
+    # Report title
+    story.append(Paragraph(title, ParagraphStyle('CoverTitle',
+        fontName='Helvetica-Bold', fontSize=20,
+        textColor=colors.HexColor('#0f172a'), alignment=TA_CENTER,
+        spaceAfter=8)))
+    story.append(Spacer(1, 2*cm))
+
+    # Meta info table
+    subject = ''
     if input_data:
-        disease = input_data.get('disease', input_data.get('topic', input_data.get('product_name', '')))
-        if disease:
-            story.append(Paragraph(f"Subject: {disease}", styles['subtitle']))
+        subject = (input_data.get('disease') or input_data.get('product_name') or
+                   input_data.get('title') or input_data.get('topic') or '')
 
-    story.append(HRFlowable(width='100%', thickness=2, color=BRAND_BLUE, spaceAfter=12))
-    story.append(Spacer(1, 0.3*cm))
+    meta_rows = [
+        ['Report Date:', datetime.datetime.utcnow().strftime('%d %B %Y')],
+        ['Subject:', subject[:60] if subject else title[:60]],
+        ['Platform:', 'AIPBIOS v2.0 — AI Intelligence Platform'],
+        ['Classification:', 'CONFIDENTIAL — For Professional Use Only'],
+        ['AI Model:', 'GPT-4o (OpenAI)'],
+    ]
+    if output_data.get('confidence_score'):
+        meta_rows.append(['Confidence Score:', f"{output_data['confidence_score']}/10"])
 
-    # ── Executive Summary ────────────────────────────────────────────────────
-    exec_sum = output_data.get('executive_summary', '')
+    meta_t = Table(meta_rows, colWidths=[5*cm, A4[0]-3.6*cm-5*cm])
+    meta_t.setStyle(TableStyle([
+        ('FONT', (0,0), (0,-1), 'Helvetica-Bold', 10),
+        ('FONT', (1,0), (1,-1), 'Helvetica', 10),
+        ('TEXTCOLOR', (0,0), (0,-1), colors.HexColor('#1a3a5c')),
+        ('TEXTCOLOR', (1,0), (1,-1), colors.HexColor('#374151')),
+        ('ROWBACKGROUNDS', (0,0), (-1,-1), [colors.white, colors.HexColor('#f8fafc')]),
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ('LEFTPADDING', (0,0), (-1,-1), 10),
+        ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor('#e2e8f0')),
+        ('GRID', (0,0), (-1,-1), 0.3, colors.HexColor('#e2e8f0')),
+    ]))
+    story.append(meta_t)
+    story.append(Spacer(1, 1.5*cm))
+
+    # Disclaimer on cover
+    disc = ('This report has been generated by AIPBIOS AI Intelligence Platform using GPT-4o. '
+            'All content must be independently verified by qualified pharmaceutical, medical, regulatory, '
+            'or legal professionals before use in regulatory submissions, clinical decisions, or commercial activities. '
+            'AIPBIOS accepts no liability for decisions made based on this report.')
+    story.append(Paragraph(disc, ParagraphStyle('CoverDisc',
+        fontName='Helvetica', fontSize=8, textColor=colors.HexColor('#94a3b8'),
+        alignment=TA_CENTER, leading=12)))
+
+    story.append(PageBreak())
+
+    # ── EXECUTIVE SUMMARY PAGE ───────────────────────────────────────────────
+    exec_sum = (output_data.get('executive_summary') or
+                output_data.get('ceo_recommendation') or '')
     if exec_sum:
         story += section_header('Executive Summary', styles)
         story += highlight_box(str(exec_sum), styles)
 
-    # ── Render all sections ──────────────────────────────────────────────────
-    _render_dict(output_data, story, styles, depth=0, skip_keys={'executive_summary'})
+        # Confidence score bar
+        score = output_data.get('confidence_score', 0)
+        if score:
+            story.append(Spacer(1, 0.3*cm))
+            score_color = colors.HexColor('#059669') if score >= 8 else                           colors.HexColor('#d97706') if score >= 6 else                           colors.HexColor('#e11d48')
+            # Visual bar
+            bar_cells = [['AI Confidence Score:'] +
+                         [' '] * 10 + [f'{score}/10']]
+            bar_t = Table(bar_cells, colWidths=[3.5*cm] + [0.8*cm]*10 + [1.2*cm])
+            style_cmds = [
+                ('FONT', (0,0), (0,0), 'Helvetica-Bold', 9),
+                ('FONT', (-1,0), (-1,0), 'Helvetica-Bold', 11),
+                ('TEXTCOLOR', (-1,0), (-1,0), score_color),
+                ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+                ('TOPPADDING', (0,0), (-1,-1), 4),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+            ]
+            for i in range(1, 11):
+                bg = score_color if i <= score else colors.HexColor('#e2e8f0')
+                style_cmds.append(('BACKGROUND', (i,0), (i,0), bg))
+                style_cmds.append(('ROWHEIGHT', (i,0), (i,0), 0.4*cm))
+            bar_t.setStyle(TableStyle(style_cmds))
+            story.append(bar_t)
+            if output_data.get('confidence_rationale'):
+                story.append(Paragraph(f"Confidence note: {output_data['confidence_rationale']}",
+                    styles['small']))
+        story.append(Spacer(1, 0.5*cm))
 
-    # ── Disclaimer ───────────────────────────────────────────────────────────
+    # ── ALL SECTIONS ─────────────────────────────────────────────────────────
+    skip = {'executive_summary','ceo_recommendation','confidence_score',
+            'confidence_rationale','_demo_mode','_message','report_generated_by',
+            'data_quality_note','analyst_recommendation'}
+    _render_dict(output_data, story, styles, depth=0, skip_keys=skip)
+
+    # ── ANALYST RECOMMENDATION ───────────────────────────────────────────────
+    rec = output_data.get('analyst_recommendation','')
+    if rec:
+        story.append(Spacer(1, 0.5*cm))
+        story += section_header('Strategic Recommendation', styles)
+        story += highlight_box(str(rec), styles,
+                               bg=colors.HexColor('#f0fdf4'),
+                               border=colors.HexColor('#059669'))
+
+    # ── FOOTER DISCLAIMER ────────────────────────────────────────────────────
     story.append(Spacer(1, 0.5*cm))
     story.append(HRFlowable(width='100%', thickness=0.5, color=GREY_MED))
     story.append(Spacer(1, 0.2*cm))
-    disclaimer = (
-        "DISCLAIMER: This report has been generated by AIPBIOS AI Intelligence Platform. "
-        "All information is provided for research and informational purposes only. "
-        "Content must be verified by qualified pharmaceutical, medical, regulatory, or legal professionals "
-        "before use in regulatory submissions, clinical decisions, or commercial activities. "
-        "AIPBIOS and its affiliates accept no liability for decisions made based on this report."
-    )
-    story.append(Paragraph(disclaimer, styles['small']))
+    story.append(Paragraph(
+        'Generated by AIPBIOS Intelligence Platform v2.0 | aipbios.onrender.com | '
+        'For professional use only. Verify all content with qualified experts.',
+        styles['small']))
 
-    # ── Build ────────────────────────────────────────────────────────────────
+    # ── BUILD PDF ────────────────────────────────────────────────────────────
     WM = make_watermark_canvas(buf)
     doc.build(story, canvasmaker=WM)
     buf.seek(0)
     return buf.read()
-
-
-def _render_dict(data, story, styles, depth=0, skip_keys=None):
-    """Recursively render a dict/list into PDF story elements."""
-    if skip_keys is None: skip_keys = set()
-    if not isinstance(data, dict): return
-
-    for key, value in data.items():
-        if key in skip_keys: continue
-        if key.startswith('_'): continue
-        if value is None or value == '' or value == [] or value == {}: continue
-
-        label = key.replace('_', ' ').replace('-', ' ').title()
-
-        if depth == 0:
-            story += section_header(label, styles)
-        elif depth == 1:
-            story += sub_header(label, styles)
-        else:
-            story.append(Paragraph(f"<b>{label}</b>", styles['h3']))
-
-        if isinstance(value, str):
-            story += body_text(value, styles)
-
-        elif isinstance(value, (int, float)):
-            story += body_text(str(value), styles)
-
-        elif isinstance(value, list):
-            if len(value) == 0: continue
-            first = value[0]
-            if isinstance(first, str):
-                story += bullet_list(value, styles)
-            elif isinstance(first, dict):
-                # Check if it's a simple list of dicts (table-able)
-                keys = list(first.keys())
-                if len(keys) <= 5 and all(isinstance(first.get(k,''), (str,int,float)) for k in keys):
-                    # Render as table
-                    headers = [k.replace('_',' ').title() for k in keys]
-                    rows = [[str(item.get(k,'')) for k in keys] for item in value]
-                    story += data_table(headers, rows, styles)
-                else:
-                    for i, item in enumerate(value):
-                        story.append(Paragraph(f"<b>Item {i+1}</b>", styles['h3']))
-                        _render_dict(item, story, styles, depth+1)
-                        story.append(Spacer(1, 0.2*cm))
-            else:
-                story += bullet_list([str(v) for v in value], styles)
-
-        elif isinstance(value, dict):
-            # Check if it looks like a KV block
-            has_only_scalars = all(isinstance(v, (str, int, float, type(None)))
-                                   for v in value.values())
-            if has_only_scalars and len(value) <= 10:
-                story += kv_table(value, styles)
-            else:
-                _render_dict(value, story, styles, depth+1)
-
-        story.append(Spacer(1, 0.1*cm))
-
-
 
 @app.route('/api/v1/intelligence/<module>/reports/<rid>/download/pdf/', methods=['GET'])
 @auth_required
