@@ -1099,7 +1099,7 @@ print(f'HTML loaded: {len(EMBEDDED_HTML)} chars')
 def serve_frontend(path):
     if path.startswith('api/') or path in ('health','api/status'):
         return jsonify({'error':'Not found'}), 404
-    # Always use embedded HTML - guaranteed correct version
+    # Always serve embedded HTML - guaranteed correct version
     return EMBEDDED_HTML, 200, {'Content-Type': 'text/html; charset=utf-8'}
 
 # ── SEED ──────────────────────────────────────────────────────────────────────
