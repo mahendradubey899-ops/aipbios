@@ -795,122 +795,563 @@ async function searchUsers(q_) {
 function renderReport(output) {
   if (!output || typeof output !== 'object' || Object.keys(output).length === 0)
     return '<div style="color:var(--muted);padding:20px;text-align:center">No output data</div>';
-  
-  // Check if demo mode
-  if (output._demo_mode) {
-    return `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:16px;margin-bottom:16px">
-      <div style="font-weight:600;color:#856404;margin-bottom:6px">⚠ Demo Mode</div>
-      <div style="font-size:13px;color:#856404">${output._message || 'Add OpenAI API key for real AI analysis'}</div>
-    </div>`;
-  }
-  
-  let html = '<div class="report-viewer">';
-  
-  // Executive summary gets special treatment
-  if (output.executive_summary || output.ceo_recommendation) {
-    html += `<div style="background:linear-gradient(135deg,#eff6ff,#f0fdfa);border:1.5px solid #2563eb;border-radius:10px;padding:16px;margin-bottom:16px">
-      <div style="font-size:11px;font-weight:700;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">📋 Executive Summary</div>
-      <div style="font-size:13px;line-height:1.7;color:#1e3a5f">${output.executive_summary || output.ceo_recommendation || ''}</div>
-    </div>`;
-  }
-  
-  html += '<div class="report-body">';
-  
-  // Render each section
-  const skip = new Set(['executive_summary','ceo_recommendation','_demo_mode','_message','_mode']);
-  for (const [key, value] of Object.entries(output)) {
-    if (skip.has(key) || value === null || value === undefined || value === '') continue;
-    if (Array.isArray(value) && value.length === 0) continue;
-    if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0) continue;
-    
-    const label = key.replace(/_/g,' ').replace(/\w/g,c=>c.toUpperCase());
-    html += renderSection(label, value, key);
-  }
-  
-  html += '</div></div>';
-  return html;
-}
-
-function renderSection(label, value, key) {
-  let html = `<div class="r-section">
-    <div class="r-title">${label}</div>`;
-  
-  if (typeof value === 'string') {
-    html += `<div class="r-text">${value}</div>`;
-  } else if (typeof value === 'number') {
-    // Scores get special badge treatment
-    if (key.includes('score') || key.includes('percent') || key.includes('rating')) {
-      const color = value >= 8 ? '#059669' : value >= 6 ? '#d97706' : '#e11d48';
-      html += `<div style="display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:50%;background:${color};color:white;font-size:18px;font-weight:700">${value}</div>`;
-    } else {
-      html += `<div class="r-text">${value}</div>`;
-    }
-  } else if (Array.isArray(value)) {
-    if (value.length === 0) return '';
-    const first = value[0];
-    if (typeof first === 'string') {
-      html += value.map(v => `<div class="r-list-item">${v}</div>`).join('');
-    } else if (typeof first === 'object') {
-      // Check if it's a simple dict (render as table)
-      const keys = Object.keys(first);
-      const isSimple = keys.length <= 5 && keys.every(k => typeof (first[k] || '') === 'string' || typeof first[k] === 'number');
-      if (isSimple && value.length > 1) {
-        html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:6px">';
-        html += '<tr>' + keys.map(k => `<th style="background:#1a3a5c;color:white;padding:6px 10px;text-align:left;font-size:11px">${k.replace(/_/g,' ').replace(/\w/g,c=>c.toUpperCase())}</th>`).join('') + '</tr>';
-        value.forEach((row, i) => {
-          html += `<tr style="background:${i%2===0?'white':'#f8fafc'}">` + 
-            keys.map(k => `<td style="padding:6px 10px;border-bottom:1px solid #e2e8f0">${row[k] ?? ''}</td>`).join('') + '</tr>';
-        });
-        html += '</table></div>';
-      } else {
-        value.forEach((item, i) => {
-          html += `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-left:3px solid #2563eb;border-radius:6px;padding:10px;margin-bottom:8px">`;
-          if (item.title || item.name || item.study_name || item.milestone) {
-            const heading = item.title || item.name || item.study_name || item.milestone;
-            html += `<div style="font-weight:600;color:#1a3a5c;margin-bottom:4px">${heading}</div>`;
-          }
-          for (const [k,v] of Object.entries(item)) {
-            if (!v || k === 'title' || k === 'name') continue;
-            const kl = k.replace(/_/g,' ').replace(/\w/g,c=>c.toUpperCase());
-            if (typeof v === 'string' || typeof v === 'number') {
-              html += `<div style="font-size:12px;margin-bottom:2px"><span style="color:#2563eb;font-weight:500">${kl}:</span> ${v}</div>`;
-            } else if (Array.isArray(v) && v.every(x=>typeof x==='string')) {
-              html += `<div style="font-size:12px;margin-bottom:2px"><span style="color:#2563eb;font-weight:500">${kl}:</span> ${v.join(', ')}</div>`;
-            }
-          }
-          html += '</div>';
-        });
-      }
-    }
-  } else if (typeof value === 'object') {
-    // Check if simple KV
-    const vals = Object.values(value);
-    const isAllScalar = vals.every(v => typeof v === 'string' || typeof v === 'number' || v === null);
-    if (isAllScalar) {
-      html += '<div style="display:grid;grid-template-columns:180px 1fr;gap:4px 12px;margin-top:4px">';
-      for (const [k,v] of Object.entries(value)) {
-        if (!v) continue;
-        const kl = k.replace(/_/g,' ').replace(/\w/g,c=>c.toUpperCase());
-        html += `<div style="font-size:12px;font-weight:500;color:#2563eb">${kl}</div>
-                 <div style="font-size:12px;color:#1a3a5c">${v}</div>`;
-      }
-      html += '</div>';
-    } else {
-      for (const [k,v] of Object.entries(value)) {
-        if (!v) continue;
-        const kl = k.replace(/_/g,' ').replace(/\w/g,c=>c.toUpperCase());
-        html += renderSection(kl, v, k);
-      }
-    }
-  }
-  
-  html += '</div>';
-  return html;
+  return `<div class="report-viewer"><div class="report-body">${renderObj(output, 0)}</div></div>`;
 }
 
 function renderObj(obj, depth) {
-  // Legacy function - redirect to new renderer
-  return renderSection('', obj, '');
+  if (obj === null || obj === undefined) return '<span style="color:#94a3b8">null</span>';
+  if (typeof obj === 'boolean') return `<span style="color:#d97706">${obj}</span>`;
+  if (typeof obj === 'number')  return `<span style="color:#d97706">${obj}</span>`;
+  if (typeof obj === 'string')  return `<span style="color:#059669">"${obj}"</span>`;
+  if (Array.isArray(obj)) {
+    if (obj.length === 0) return '<span style="color:#94a3b8">[]</span>';
+    if (typeof obj[0] === 'string') return obj.map(i=>`<div class="r-list-item">${i}</div>`).join('');
+    return obj.map((item,i)=>`<div style="margin-bottom:8px;padding:8px;background:#f8fafc;border-radius:6px;border-left:3px solid var(--brand)"><div style="font-size:10px;color:var(--faint);margin-bottom:4px">#${i+1}</div>${renderObj(item,depth+1)}</div>`).join('');
+  }
+  if (typeof obj === 'object') {
+    return Object.entries(obj).map(([k,v])=>{
+      const keyFmt = k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+      if (typeof v === 'object' && v !== null) {
+        return `<div class="r-section"><div class="r-title">${keyFmt}</div>${renderObj(v, depth+1)}</div>`;
+      }
+      return `<div class="r-row"><span class="r-key">${keyFmt}</span><span class="r-val">${renderObj(v,depth+1)}</span></div>`;
+    }).join('');
+  }
+  return String(obj);
+}
+
+// ── Intelligence page factory ──────────────────────────────────────────────
+function intelPage(pageId, icon, title, style, moduleType, urlModule, action, formFn, hasDl=false) {
+  document.getElementById('page-content').innerHTML = `
+  <div class="module-banner" style="${style}">
+    <span style="font-size:28px">${icon}</span>
+    <div><div style="font-size:14px;font-weight:600">${title}</div><div style="font-size:12px;opacity:.8">${document.getElementById('page-sub').textContent}</div></div>
+  </div>
+  <div class="intel-2col">
+    <div class="card" style="padding:20px">
+      <div class="section-title">Analysis Input</div>
+      <div id="intel-form">${formFn()}</div>
+      <button class="btn btn-primary btn-full" style="margin-top:16px" id="run-btn" onclick="runIntel('${urlModule}','${action}','${moduleType}')">
+        ✨ Run ${title.split(' ')[0]} Analysis
+      </button>
+    </div>
+    <div style="min-width:0">
+      <div id="job-status-area"></div>
+      <div id="report-area">
+        <div class="card" style="padding:30px;text-align:center;color:var(--muted)">
+          <div style="font-size:32px;margin-bottom:10px">${icon}</div>
+          <div style="font-weight:500">Awaiting analysis</div>
+          <div style="font-size:12px;margin-top:4px">Fill in the form and click Run to generate AI insights</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:24px" id="prev-reports-section"></div>`;
+  loadPrevReports(urlModule, moduleType);
+}
+
+async function loadPrevReports(urlModule, moduleType) {
+  try {
+    const data = await api('GET',`/api/v1/intelligence/${urlModule}/reports/`);
+    const reports = data.results || data || [];
+    if (!reports.length) return;
+    const section = document.getElementById('prev-reports-section');
+    if (!section) return;
+    section.innerHTML = `
+    <div class="section-title">Previous Reports (${reports.length})</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
+      ${reports.slice(0,6).map(r=>`
+      <div class="card-hover" style="padding:14px;cursor:pointer" onclick="showJobResult('${r.id||r.job_id}')">
+        <div style="display:flex;justify-content:space-between;align-items:start;gap:8px;margin-bottom:6px">
+          <div style="font-size:12px;font-weight:500">${(r.module_type||moduleType).replace(/_/g,' ')}</div>
+          ${statusBadge(r.status||'completed')}
+        </div>
+        <div style="font-size:11px;color:var(--faint)">${r.project_title||''} · ${fmtDate(r.created_at)}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${r.tokens_used||0} tokens</div>
+      </div>`).join('')}
+    </div>`;
+  } catch(e) {}
+}
+
+async function runIntel(urlModule, action, moduleType) {
+  // Collect statistical model checkboxes
+  if (moduleType === 'statistical_intel') {
+    const checked = Array.from(document.querySelectorAll('input[name="stat-model"]:checked')).map(c=>c.value);
+    const hidden = document.getElementById('stat-models-hidden');
+    if (hidden) hidden.value = JSON.stringify(checked);
+  }
+  const projId = document.getElementById('intel-project')?.value;
+  if (!projId) { toast('Please select a project first','error'); return; }
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true; btn.textContent = '⏳ Running…';
+
+  const formData = collectFormData();
+  formData.project_id = projId;
+
+  document.getElementById('job-status-area').innerHTML = `
+  <div class="job-card processing" style="margin-bottom:16px">
+    <div class="job-icon" style="background:#f3e8ff">⏳</div>
+    <div style="flex:1">
+      <div style="font-size:13px;font-weight:500">AI analysis running…</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">Processing your request</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:70%"></div></div>
+    </div>
+  </div>`;
+
+  try {
+    let endpoint = `/api/v1/intelligence/${urlModule}/${action}/`;
+    let payload = formData;
+    // Handle file upload for analytical
+    if (urlModule === 'analytical') {
+      const fileInput = document.getElementById('analytic-image');
+      if (fileInput?.files[0]) {
+        const fd = new FormData();
+        Object.entries(formData).forEach(([k,v])=>fd.append(k,v));
+        fd.append('image', fileInput.files[0]);
+        payload = fd;
+      }
+    }
+    const isForm = payload instanceof FormData;
+    const result = await api('POST', endpoint, payload, isForm);
+
+    if (result.error) { toast(result.message||'Analysis failed','error'); btn.disabled=false; btn.textContent='✨ Run Analysis'; return; }
+
+    const jobId = result.job_id;
+    // For demo, status is immediate
+    const jobResult = await api('GET', `/api/v1/projects/jobs/${jobId}/result/`);
+    const output = jobResult.output_payload || {};
+
+    document.getElementById('job-status-area').innerHTML = `
+    <div class="job-card completed" style="margin-bottom:16px">
+      <div class="job-icon" style="background:#dcfce7;font-size:20px">✅</div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500;color:#15803d">Analysis complete!</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">Job ID: ${jobId.slice(0,8)}… · ${jobResult.tokens_used||0} tokens used</div>
+        ${moduleType==='dossier'?`<div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-primary btn-sm" onclick="downloadDossierPdf('${jobId}')">⬇ PDF</button><button class="btn btn-secondary btn-sm" onclick="downloadDossierJson('${jobId}')">⬇ JSON</button></div>`:''}
+        ${moduleType==='research_asst'?`<button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="downloadResearchPdf('${jobId}')">⬇ Download PDF</button>`:''}
+      </div>
+    </div>`;
+    document.getElementById('report-area').innerHTML = renderReport(output);
+    toast('Analysis complete!','success');
+  } catch(e) {
+    console.error(e);
+    document.getElementById('job-status-area').innerHTML = `<div class="job-card failed" style="margin-bottom:16px"><div class="job-icon" style="background:#fee2e2">❌</div><div><div style="font-size:13px;font-weight:500;color:#b91c1c">Analysis failed</div><div style="font-size:11px;color:var(--muted)">Check console for details</div></div></div>`;
+    toast('Analysis failed — check server logs','error');
+  }
+  btn.disabled=false; btn.textContent='✨ Run Analysis';
+}
+
+function collectFormData() {
+  const result = {};
+  document.querySelectorAll('#intel-form [data-field]').forEach(el=>{
+    const k = el.getAttribute('data-field');
+    if (el.tagName==='INPUT'||el.tagName==='SELECT'||el.tagName==='TEXTAREA') result[k] = el.value;
+  });
+  // chips (multi-select)
+  document.querySelectorAll('#intel-form [data-chips]').forEach(container=>{
+    const k = container.getAttribute('data-chips');
+    result[k] = Array.from(container.querySelectorAll('.chip.active')).map(c=>c.textContent.trim());
+  });
+  return result;
+}
+
+async function projectOptions() {
+  try {
+    const data = await api('GET','/api/v1/projects/?status=active');
+    const ps = data.results||data||[];
+    return ps.map(p=>`<option value="${p.id}">${p.title}</option>`).join('');
+  } catch(e) { return ''; }
+}
+
+// ── Form templates ─────────────────────────────────────────────────────────
+let _projOpts = null;
+async function getProjectSelect() {
+  // Always fetch fresh projects and populate after DOM renders
+  setTimeout(async () => {
+    const sel = document.getElementById('intel-project');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Loading projects...</option>';
+    try {
+      const data = await api('GET', '/api/v1/projects/');
+      const ps = (data.results || data || []).filter(p => p.status !== 'archived');
+      if (ps.length === 0) {
+        sel.innerHTML = '<option value="">No projects found — create one first</option>';
+      } else {
+        sel.innerHTML = '<option value="">— Select project —</option>' +
+          ps.map(p => `<option value="${p.id}">${p.title}</option>`).join('');
+      }
+    } catch(e) {
+      sel.innerHTML = '<option value="">Error loading projects</option>';
+    }
+  }, 200);
+  return `<select id="intel-project"><option value="">Loading...</option></select>`;
+}
+
+function diseaseForm() {
+  getProjectSelect();
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Disease / Condition *</label><input data-field="disease" placeholder="e.g. Type 2 Diabetes Mellitus"></div>
+  <div class="form-group"><label>Healthcare Problem *</label><textarea data-field="healthcare_problem" rows="3" placeholder="Describe the specific unmet need or clinical gap"></textarea></div>
+  <div class="form-group"><label>Target Population *</label><input data-field="target_population" placeholder="e.g. Adults 40–70 in rural India"></div>`;
+}
+
+function formulationForm() {
+  getProjectSelect();
+  const ptypes = ['Ayurvedic','Allopathic','Nutraceutical','Homeopathic','Biologic','Cosmeceutical'];
+  const dforms = ['Tablet','Capsule','Syrup','Cream','Gel','Ointment','Injection','Patch','Drops','Suspension','Powder','Granules'];
+  const bsizes = ['10,000 units','50,000 units','100,000 units','500,000 units','1,000,000 units'];
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Disease / Indication *</label><input data-field="disease" placeholder="e.g. Type 2 Diabetes Mellitus"></div>
+  <div class="grid-2">
+    <div class="form-group"><label>Product Type</label><select data-field="product_type">${ptypes.map(t=>`<option>${t}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Dosage Form</label><select data-field="dosage_form">${dforms.map(d=>`<option>${d}</option>`).join('')}</select></div>
+  </div>
+  <div class="grid-2">
+    <div class="form-group"><label>Batch Size</label><select data-field="batch_size">${bsizes.map(s=>`<option>${s}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Route</label><select data-field="route"><option>Oral</option><option>Topical</option><option>Parenteral</option><option>Inhalation</option><option>Ophthalmic</option></select></div>
+  </div>
+  <div class="form-group">
+    <label>Preferred Active Ingredients <span style="font-size:11px;color:var(--faint)">(optional — AI will suggest if blank)</span></label>
+    <textarea data-field="active_ingredients" rows="2" placeholder="e.g. Bitter Melon Extract, Fenugreek Seed Extract, Metformin HCl..."></textarea>
+  </div>
+  <div class="form-group"><label>Special Requirements</label><textarea data-field="additional_context" rows="2" placeholder="e.g. Sugar-free, paediatric friendly, sustained release, halal certified..."></textarea></div>`;
+}
+
+function literatureForm() {
+  getProjectSelect();
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Research Topic *</label><input data-field="topic" placeholder="e.g. Bitter Melon in Type 2 Diabetes management — RCTs"></div>
+  <div class="form-group"><label>Year Range</label><input data-field="year_range" value="2019-2024" placeholder="e.g. 2019-2024"></div>
+  <div class="form-group"><label>Additional Context</label><textarea data-field="context" rows="2" placeholder="Specific aspects, geographic region, patient population…"></textarea></div>`;
+}
+
+function regulatoryForm() {
+  getProjectSelect();
+  const auths = ['CDSCO','AYUSH','FSSAI','USFDA','EMA','WHO','TGA','Health Canada'];
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Disease *</label><input data-field="disease" placeholder="e.g. Hypertension"></div>
+  <div class="grid-2">
+    <div class="form-group"><label>Product Type *</label><input data-field="product_type" placeholder="e.g. Fixed Dose Combination"></div>
+    <div class="form-group"><label>Dosage Form</label><input data-field="dosage_form" placeholder="e.g. Tablet"></div>
+  </div>
+  <div class="form-group"><label>Target Regulatory Authorities</label>
+    <div class="chip-group" data-chips="target_markets">${auths.map(a=>`<span class="chip" onclick="this.classList.toggle('active')">${a}</span>`).join('')}</div>
+  </div>`;
+}
+
+function patentForm() {
+  getProjectSelect();
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Invention Description *</label><textarea data-field="invention_description" rows="5" placeholder="Describe your invention — composition, method, novel features, technical problem solved…"></textarea></div>
+  <div class="grid-2">
+    <div class="form-group"><label>Disease / Field *</label><input data-field="disease" placeholder="e.g. Diabetes"></div>
+    <div class="form-group"><label>Product Type *</label><input data-field="product_type" placeholder="e.g. Herbal Tablet"></div>
+  </div>`;
+}
+
+function stabilityForm() {
+  getProjectSelect();
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Product Name *</label><input data-field="product_name" placeholder="e.g. GlycoHerb-DS Tablet"></div>
+  <div class="form-group"><label>Dosage Form</label><input data-field="dosage_form" placeholder="e.g. Film-Coated Tablet"></div>
+  <div class="form-group"><label>Storage Condition</label><input data-field="storage_condition" value="25°C/60% RH" placeholder="e.g. 25°C/60% RH"></div>
+  <div class="form-group"><label>Active Ingredients (comma-separated)</label><input data-field="active_ingredients" placeholder="e.g. Bitter Melon Extract, Fenugreek Extract"></div>`;
+}
+
+function analyticalForm() {
+  getProjectSelect();
+  const types = ['hplc','hptlc','ftir','uv_vis','nmr','gc_ms','dissolution','particle_size'];
+  const labels = {
+    'hplc':'HPLC Chromatogram','hptlc':'HPTLC Plate','ftir':'FTIR Spectrum',
+    'uv_vis':'UV-Vis Spectrum','nmr':'NMR Spectrum','gc_ms':'GC-MS Chromatogram',
+    'dissolution':'Dissolution Profile','particle_size':'Particle Size Analysis'
+  };
+  const descs = {
+    'hplc':'High Performance Liquid Chromatography — peak identification, assay, impurity profiling',
+    'hptlc':'High Performance TLC — botanical identification, fingerprinting',
+    'ftir':'Fourier-Transform Infrared — structural identification, excipient compatibility',
+    'uv_vis':'UV-Visible Spectroscopy — concentration, purity assessment',
+    'nmr':'Nuclear Magnetic Resonance — structural elucidation, purity',
+    'gc_ms':'Gas Chromatography-Mass Spectrometry — volatile compounds, residual solvents',
+    'dissolution':'Dissolution testing — drug release profile, bioavailability prediction',
+    'particle_size':'Particle size distribution — d10, d50, d90 analysis'
+  };
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Analysis Technique *</label>
+    <select data-field="image_type" style="margin-bottom:6px">
+      ${types.map(t=>`<option value="${t}">${labels[t]}</option>`).join('')}
+    </select>
+  </div>
+  <div class="form-group"><label>Sample Name / Product</label>
+    <input data-field="product_name" placeholder="e.g. GlycoHerb-DS Tablet, Batch No: GH-2024-001">
+  </div>
+  <div class="form-group"><label>Expected Analytes / Compounds</label>
+    <input data-field="expected_analytes" placeholder="e.g. Charantin, 4-Hydroxyisoleucine, Gymnemic Acid A">
+  </div>
+  <div class="form-group"><label>Instrument & Method Details *</label>
+    <textarea data-field="context" rows="3" placeholder="Describe your analytical data or method:&#10;• HPLC: Column C18, mobile phase, wavelength, retention times observed&#10;• FTIR: Wavenumbers of key peaks observed&#10;• UV-Vis: Wavelength scan range, absorbance values&#10;• Dissolution: Medium, apparatus, RPM, time points, % dissolved&#10;• Or paste your data table here for interpretation"></textarea>
+  </div>
+  <div class="form-group"><label>Upload Chromatogram/Spectrum Image <span style="font-size:11px;color:var(--faint)">(optional)</span></label>
+    <input type="file" id="analytic-image" accept="image/*" style="padding:6px">
+    <div style="font-size:11px;color:var(--faint);margin-top:4px">PNG, JPG, TIFF · Max 20MB · The AI will interpret the image if uploaded</div>
+  </div>`;
+}
+
+function manufacturingForm() {
+  getProjectSelect();
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Product Name *</label><input data-field="product_name" placeholder="e.g. GlycoHerb-DS Tablet"></div>
+  <div class="grid-2">
+    <div class="form-group"><label>Dosage Form</label><input data-field="dosage_form" value="Tablet" placeholder="Tablet"></div>
+    <div class="form-group"><label>Batch Size</label><input data-field="batch_size" value="100,000 units" placeholder="100,000 units"></div>
+  </div>
+  <div class="form-group"><label>Product Type</label><input data-field="product_type" value="Pharmaceutical" placeholder="Pharmaceutical"></div>
+  <div class="form-group"><label>Active Ingredients</label><input data-field="active_ingredients" placeholder="e.g. Bitter Melon Extract 250mg, Fenugreek 125mg"></div>`;
+}
+
+function costForm() {
+  getProjectSelect();
+  const markets = ['India','USA','Europe','UK','Australia','Middle East'];
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Product Name *</label><input data-field="product_name" placeholder="e.g. GlycoHerb-DS Tablet"></div>
+  <div class="grid-2">
+    <div class="form-group"><label>Dosage Form</label><input data-field="dosage_form" value="Tablet"></div>
+    <div class="form-group"><label>Batch Size</label><input data-field="batch_size" value="100,000 units"></div>
+  </div>
+  <div class="form-group"><label>Target Market</label>
+    <div class="chip-group" data-chips="target_market">${markets.map((m,i)=>`<span class="chip ${i===0?'active':''}" onclick="document.querySelectorAll('[data-chips=target_market] .chip').forEach(c=>c.classList.remove('active'));this.classList.add('active')">${m}</span>`).join('')}</div>
+  </div>
+  <div class="form-group"><label>Active Ingredients</label><input data-field="active_ingredients" placeholder="e.g. Bitter Melon Extract, Fenugreek Extract"></div>`;
+}
+
+function dossierForm() {
+  getProjectSelect();
+  const dtypes = [['full_ctd','Full CTD Dossier','5-module Common Technical Document'],['pdr','Product Development Report','ICH Q8 development report'],['executive_summary','Executive Summary','High-level management brief']];
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="grid-2">
+    <div class="form-group"><label>Product Name *</label><input data-field="product_name" placeholder="e.g. GlycoHerb-DS Tablet"></div>
+    <div class="form-group"><label>Disease *</label><input data-field="disease" placeholder="e.g. Type 2 Diabetes"></div>
+  </div>
+  <div class="grid-2">
+    <div class="form-group"><label>Dosage Form</label><input data-field="dosage_form" placeholder="Film-Coated Tablet"></div>
+    <div class="form-group"><label>Product Type</label><input data-field="product_type" placeholder="Ayurvedic"></div>
+  </div>
+  <div class="form-group"><label>Document Type</label>
+    ${dtypes.map(([v,l,d],i)=>`
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
+      <input type="radio" name="doc-type" value="${v}" ${i===0?'checked':''} data-field="doc_type" style="width:auto">
+      <div><div style="font-size:12px;font-weight:500">${l}</div><div style="font-size:11px;color:var(--muted)">${d}</div></div>
+    </label>`).join('')}
+  </div>`;
+}
+
+function researchForm() {
+  getProjectSelect();
+  const dtypes = [
+    ['research_proposal','Research Proposal','Full grant-ready proposal with budget'],
+    ['synopsis','Synopsis','2-page brief overview'],
+    ['protocol','Clinical Protocol','ICH E6 GCP-compliant trial protocol'],
+    ['publication_draft','Publication Draft','Journal manuscript with structured sections'],
+    ['review_article','Review Article','Systematic or narrative review'],
+    ['statistical_validation','Statistical Validation Plan','Pre-execution validation with sample size, models, dosing'],
+  ];
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Document Type</label>
+    <div style="display:grid;grid-template-columns:1fr;gap:6px;margin-top:6px">
+    ${dtypes.map(([v,l,d],i)=>`
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border:1px solid var(--border);border-radius:8px;transition:.15s" onmouseover="this.style.borderColor='#2563eb'" onmouseout="this.style.borderColor=this.querySelector('input').checked?'#2563eb':'var(--border)'">
+      <input type="radio" name="doc-type-r" value="${v}" ${i===0?'checked':''} style="width:auto;flex-shrink:0" onchange="document.querySelector('[data-field=doc_type]').value='${v}'">
+      <div><div style="font-size:12px;font-weight:600">${l}</div><div style="font-size:11px;color:var(--muted)">${d}</div></div>
+    </label>`).join('')}
+    <input type="hidden" data-field="doc_type" value="research_proposal">
+    </div>
+  </div>
+  <div class="form-group"><label>Research Title *</label><input data-field="title" placeholder="Full descriptive research title"></div>
+  <div class="form-group"><label>Disease / Research Area *</label><input data-field="disease" placeholder="e.g. Type 2 Diabetes Mellitus"></div>
+  <div class="form-group"><label>Primary Objective *</label><textarea data-field="objective" rows="2" placeholder="State the primary research objective clearly and measurably"></textarea></div>
+  <div class="form-group"><label>Background / Hypothesis</label><textarea data-field="context" rows="2" placeholder="Brief background, hypothesis, and rationale for the study"></textarea></div>`;
+}
+
+function microbiologyForm() {
+  getProjectSelect();
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Sample Type *</label>
+    <select data-field="sample_type">
+      <option>Pharmaceutical product</option>
+      <option>Raw material</option>
+      <option>Water sample</option>
+      <option>Environmental swab</option>
+      <option>Clinical specimen</option>
+      <option>Food/Herbal material</option>
+    </select>
+  </div>
+  <div class="form-group"><label>Culture Medium</label>
+    <select data-field="culture_medium">
+      <option>Nutrient Agar</option>
+      <option>MacConkey Agar</option>
+      <option>Blood Agar</option>
+      <option>Sabouraud Dextrose Agar</option>
+      <option>Cetrimide Agar</option>
+      <option>Multiple media</option>
+    </select>
+  </div>
+  <div class="form-group"><label>Incubation Conditions</label>
+    <input data-field="incubation" value="37°C, 24-48 hours, aerobic" placeholder="e.g. 37°C, 24-48h, aerobic">
+  </div>
+  <div class="form-group"><label>Analysis Context</label>
+    <textarea data-field="context" rows="3" placeholder="Describe what you observe: colony appearance, colour, size, Gram stain result, any special characteristics..."></textarea>
+  </div>
+  <div class="form-group"><label>Upload Petri Plate Image <span style="font-size:11px;color:var(--faint)">(optional)</span></label>
+    <input type="file" id="analytic-image" accept="image/*" style="padding:6px">
+    <div style="font-size:11px;color:var(--faint);margin-top:4px">Upload photo of Petri plate for AI-assisted colony counting and morphology analysis</div>
+  </div>`;
+}
+
+function statisticalForm() {
+  getProjectSelect();
+  const models = [
+    ['t_test','t-test','Compare means between 2 groups'],
+    ['anova','One-way ANOVA','Compare means across 3+ groups'],
+    ['two_way_anova','Two-way ANOVA','Two independent variables'],
+    ['regression','Linear Regression','Predict continuous outcome'],
+    ['logistic_regression','Logistic Regression','Predict binary outcome'],
+    ['correlation','Correlation Analysis','Pearson/Spearman/Kendall'],
+    ['chi_square','Chi-square Test','Categorical data analysis'],
+    ['survival','Survival Analysis','Kaplan-Meier / Cox regression'],
+    ['pca','PCA','Principal Component Analysis'],
+    ['doe','DOE','Design of Experiments'],
+    ['rsm','Response Surface Methodology','Optimisation studies'],
+    ['non_parametric','Non-parametric Tests','Mann-Whitney, Kruskal-Wallis'],
+  ];
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Study Title *</label>
+    <input data-field="title" placeholder="e.g. Efficacy of Carica papaya extract on platelet count in dengue">
+  </div>
+  <div class="form-group"><label>Statistical Models Required</label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px" id="stat-model-grid">
+      ${models.map(([v,l,d])=>`
+      <label style="display:flex;align-items:flex-start;gap:6px;cursor:pointer;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12px">
+        <input type="checkbox" value="${v}" name="stat-model" style="width:auto;margin-top:2px;flex-shrink:0">
+        <div><div style="font-weight:500">${l}</div><div style="font-size:10px;color:var(--muted)">${d}</div></div>
+      </label>`).join('')}
+    </div>
+    <input type="hidden" data-field="statistical_models" id="stat-models-hidden" value="[]">
+  </div>
+  <div class="form-group"><label>Data Description</label>
+    <textarea data-field="data_description" rows="3" placeholder="Describe your data: number of groups, sample size, variables, measurement scale, any preliminary results..."></textarea>
+  </div>
+  <div class="form-group"><label>Upload Data File <span style="font-size:11px;color:var(--faint)">(Excel/CSV/PDF optional)</span></label>
+    <input type="file" id="analytic-image" accept=".xlsx,.csv,.pdf,.doc,.docx" style="padding:6px">
+  </div>`;
+}
+
+function preclinicalForm() {
+  getProjectSelect();
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Project Title *</label>
+    <input data-field="title" placeholder="e.g. Preclinical evaluation of GlycoHerb-DS in STZ-induced diabetic rats">
+  </div>
+  <div class="form-group"><label>Disease / Indication *</label>
+    <input data-field="disease" placeholder="e.g. Type 2 Diabetes Mellitus">
+  </div>
+  <div class="form-group"><label>Therapeutic Area</label>
+    <select data-field="therapeutic_area">
+      <option>Metabolic disorders</option>
+      <option>Cardiovascular</option>
+      <option>Infectious diseases</option>
+      <option>Oncology</option>
+      <option>Neurology</option>
+      <option>Respiratory</option>
+      <option>Gastroenterology</option>
+      <option>Musculoskeletal</option>
+      <option>Dermatology</option>
+      <option>Immunology</option>
+      <option>Other</option>
+    </select>
+  </div>
+  <div class="form-group"><label>Product Type</label>
+    <select data-field="product_type">
+      <option>Herbal/Ayurvedic</option>
+      <option>Allopathic small molecule</option>
+      <option>Biologic</option>
+      <option>Nutraceutical</option>
+      <option>Medical device</option>
+    </select>
+  </div>
+  <div class="form-group"><label>Active Ingredient(s)</label>
+    <input data-field="active_ingredients" placeholder="e.g. Bitter Melon Extract, Fenugreek Seed Extract">
+  </div>
+  <div class="form-group"><label>Regulatory Target</label>
+    <select data-field="regulatory_target">
+      <option>CDSCO IND (India)</option>
+      <option>USFDA IND</option>
+      <option>EMA CTA</option>
+      <option>AYUSH New Drug</option>
+      <option>Research publication only</option>
+    </select>
+  </div>`;
+}
+
+function clinicalForm() {
+  getProjectSelect();
+  return `
+  <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
+  <div class="form-group"><label>Project Title *</label>
+    <input data-field="title" placeholder="e.g. Phase II RCT of GlycoHerb-DS in Type 2 Diabetes">
+  </div>
+  <div class="form-group"><label>Disease / Indication *</label>
+    <input data-field="disease" placeholder="e.g. Type 2 Diabetes Mellitus">
+  </div>
+  <div class="form-group"><label>Therapeutic Area</label>
+    <input data-field="therapeutic_area" placeholder="e.g. Endocrinology / Metabolic disorders">
+  </div>
+  <div class="form-group"><label>Product Type</label>
+    <select data-field="product_type">
+      <option>Herbal/Ayurvedic</option>
+      <option>Allopathic small molecule</option>
+      <option>Biologic/Biosimilar</option>
+      <option>Nutraceutical</option>
+      <option>Combination product</option>
+    </select>
+  </div>
+  <div class="form-group"><label>Current Development Stage</label>
+    <select data-field="development_stage">
+      <option value="preclinical">Preclinical</option>
+      <option value="phase_1">Phase I ready</option>
+      <option value="phase_2">Phase II ready</option>
+      <option value="phase_3">Phase III ready</option>
+    </select>
+  </div>`;
+}
+
+// ── Downloads ──────────────────────────────────────────────────────────────
+async function downloadAnyPdf(urlModule, jobId) {
+  toast('Generating PDF report…','info');
+  try {
+    const resp = await fetch(`/api/v1/intelligence/${urlModule}/reports/${jobId}/download/pdf/`,
+      {headers: {Authorization: 'Bearer '+AUTH.token}});
+    if (!resp.ok) { toast('PDF generation failed — try again','error'); return; }
+    const blob = await resp.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = `AIPBIOS_${urlModule}_report.pdf`;
+    a.click(); URL.revokeObjectURL(url);
+    toast('PDF downloaded successfully!','success');
+  } catch(e) { toast('Download failed','error'); }
 }
 
 async function downloadDossierPdf(jobId) {
