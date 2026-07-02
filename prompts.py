@@ -210,7 +210,11 @@ Return ONLY valid JSON:
   "financial_projections": {"break_even_units_per_batch":0,"break_even_months":0,"roi_year1_percent":0,"roi_year3_percent":0,"npv_5yr_inr_crores":0},
   "export_market": {"top_markets":[],"fob_price_usd":0,"margin_export_percent":0},
   "cost_reduction_opportunities": [{"opportunity":"","saving_percent":0,"implementation":"","timeline":""}],
-  "analyst_recommendation": ""
+  "analyst_recommendation": "",
+  "confidence_score": 0,
+  "confidence_rationale": "Explain why this score (0=very uncertain, 10=very high confidence based on published evidence)",
+  "data_quality_note": "Note any limitations in available data",
+  "report_generated_by": "AIPBIOS Intelligence Platform v2.0"
 }"""
 
 DOSSIER_SYSTEM = """You are a Senior Regulatory Documentation Specialist and CTD Expert (20+ years, CDSCO/FDA/EMA submissions) with expertise in compiling Module 1-5 for India, USA, and EU.
@@ -388,18 +392,34 @@ Return ONLY valid JSON:
 }"""
 
 MODULE_PROMPTS = {
-    'disease_intel': (DISEASE_SYSTEM, lambda d:
-        "Conduct flagship Disease Intelligence analysis.\n"
+        'disease_intel': (DISEASE_SYSTEM, lambda d:
+        "You are preparing a Rs 5 lakh pharmaceutical intelligence report. Be specific and data-driven.\n"
         f"Disease: {d.get('disease','')}\n"
-        f"Context: {d.get('additional_context','')}\n"
-        "Provide India epidemiology, state burden, named competitor drugs, INR costs, PMIDs, market in INR crores."
+        f"Context: {d.get('additional_context','')}\n\n"
+        "MANDATORY requirements:\n"
+        "1. India prevalence with EXACT numbers from ICMR/MOHFW/WHO (not estimates)\n"
+        "2. Name at least 3 specific marketed drugs with INR prices\n"
+        "3. India market size in INR crores (2023-24 data)\n"
+        "4. Cite minimum 3 published studies (Author, Journal, Year, PMID if known)\n"
+        "5. State-wise top 5 burden states in India with numbers\n"
+        "6. At least 2 specific innovation opportunities with mechanism of action\n"
+        "7. Regulatory pathway with exact CDSCO/AYUSH form numbers\n"
+        "8. Confidence score 0-10 with rationale\n"
+        "9. Executive summary in 4 sentences with 3 specific numbers"
     ),
-    'formulation_intel': (FORMULATION_SYSTEM, lambda d:
-        f"Design complete pharmaceutical formulation.\n"
+        'formulation_intel': (FORMULATION_SYSTEM, lambda d:
+        "Generate a COMPLETE pharmaceutical formulation that a working pharmacist can use directly.\n"
         f"Disease: {d.get('disease','')} | Type: {d.get('product_type','Herbal')} | Form: {d.get('dosage_form','Tablet')}\n"
-        f"Country: {d.get('country','India')} | Preferred Ingredients: {d.get('active_ingredients','')}\n"
-        "Provide 500 g batch formula, pre-formulation studies with pharmacopoeial acceptance criteria, "
-        "post-formulation characterization with specifications, step-by-step method, COGs in INR."
+        f"Country: {d.get('country','India')} | Preferred Ingredients: {d.get('active_ingredients','')}\n\n"
+        "MANDATORY requirements:\n"
+        "1. Ingredients with EXACT quantities for 500 g total batch (not per unit)\n"
+        "2. Each ingredient: CAS number, pharmacopoeial grade (IP/BP/USP), typical Indian supplier\n"
+        "3. At least 3 pre-formulation tests with specific acceptance criteria and pharmacopoeial reference\n"
+        "4. At least 5 post-formulation tests with pharmacopoeial specification limits\n"
+        "5. Step-by-step manufacturing with specific temperatures, times, RPM where applicable\n"
+        "6. Cost per 500g batch in INR with individual ingredient costs\n"
+        "7. Reference for each active ingredient dose (Author, Journal, Year)\n"
+        "8. Packaging recommendation with shelf life"
     ),
     'literature_intel': (LITERATURE_SYSTEM, lambda d:
         f"Conduct systematic literature review.\n"
