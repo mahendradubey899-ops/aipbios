@@ -1099,18 +1099,8 @@ print(f'HTML loaded: {len(EMBEDDED_HTML)} chars')
 def serve_frontend(path):
     if path.startswith('api/') or path in ('health','api/status'):
         return jsonify({'error':'Not found'}), 404
-    static_dir = os.path.join(BASE_DIR, 'static')
-    if path and os.path.exists(os.path.join(static_dir, path)):
-        return send_from_directory(static_dir, path)
-    if os.path.exists(os.path.join(static_dir, 'index.html')):
-        return send_from_directory(static_dir, 'index.html')
-    for p in [os.path.join(BASE_DIR,'index.html'),'index.html']:
-        if os.path.exists(p):
-            with open(p,'r',encoding='utf-8') as f:
-                return f.read(), 200, {'Content-Type':'text/html; charset=utf-8'}
-    if EMBEDDED_HTML:
-        return EMBEDDED_HTML, 200, {'Content-Type':'text/html; charset=utf-8'}
-    return '<h1>AIPBIOS v2.0</h1><p>index.html not found</p>', 404
+    # Always use embedded HTML - guaranteed correct version
+    return EMBEDDED_HTML, 200, {'Content-Type': 'text/html; charset=utf-8'}
 
 # ── SEED ──────────────────────────────────────────────────────────────────────
 def seed():
