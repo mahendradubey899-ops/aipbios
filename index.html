@@ -270,7 +270,7 @@ hr{border:none;border-top:1px solid var(--border);margin:16px 0}
     <div class="nav-item" onclick="showPage('dossier')"       id="nav-dossier"><span class="icon" style="color:#2563eb">📄</span> Dossier Builder</div>
     <div class="nav-item" onclick="showPage('research')"      id="nav-research"><span class="icon" style="color:#db2777">🎓</span> Research Asst.</div>
     <div class="nav-section">Advanced Modules</div>
-    <div class="nav-item" onclick="showPage('microbiology')"  id="nav-microbiology"><span class="icon" style="color:#16a34a">🦠</span> Microbiology Intel</div>
+    <div class="nav-item" onclick="showPage('microbiology')"  id="nav-microbiology"><span class="icon" style="color:#16a34a">🦠</span> Microbiology</div>
     <div class="nav-item" onclick="showPage('statistical')"   id="nav-statistical"><span class="icon" style="color:#7c3aed">📊</span> Statistical Intel</div>
     <div class="nav-item" onclick="showPage('preclinical')"   id="nav-preclinical"><span class="icon" style="color:#ea580c">🐭</span> Preclinical Intel</div>
     <div class="nav-item" onclick="showPage('clinical')"      id="nav-clinical"><span class="icon" style="color:#2563eb">🏥</span> Clinical Intel</div>
@@ -491,9 +491,9 @@ function showPage(page) {
     dossier:      ['Dossier Builder','CTD-ready dossier with PDF and JSON export'],
     research:     ['Research Assistant','Proposals, protocols and publication drafts'],
     microbiology: ['Microbiological Intelligence','Colony counting, morphology and organism identification'],
-    statistical:  ['Statistical Intelligence','Model selection, assumption testing and analysis report'],
-    preclinical:  ['Preclinical Intelligence','Animal models, PK, toxicology and CPCSEA study planning'],
-    clinical:     ['Clinical Development Intelligence','Phase I-IV planning, CDSCO, CTRI and GCP compliance'],
+    statistical:  ['Statistical Intelligence','Statistical model selection, analysis and report'],
+    preclinical:  ['Preclinical Intelligence','Animal models, PK, toxicology and study planning'],
+    clinical:     ['Clinical Development Intelligence','Phase I-IV planning, CDSCO and GCP compliance'],
   };
   const [title,sub] = pages[page]||[page,''];
   document.getElementById('page-title').textContent = title;
@@ -874,12 +874,6 @@ async function loadPrevReports(urlModule, moduleType) {
 }
 
 async function runIntel(urlModule, action, moduleType) {
-  // Collect statistical model checkboxes
-  if (moduleType === 'statistical_intel') {
-    const checked = Array.from(document.querySelectorAll('input[name="stat-model"]:checked')).map(c=>c.value);
-    const hidden = document.getElementById('stat-models-hidden');
-    if (hidden) hidden.value = JSON.stringify(checked);
-  }
   const projId = document.getElementById('intel-project')?.value;
   if (!projId) { toast('Please select a project first','error'); return; }
   const btn = document.getElementById('run-btn');
@@ -927,8 +921,10 @@ async function runIntel(urlModule, action, moduleType) {
       <div style="flex:1">
         <div style="font-size:13px;font-weight:500;color:#15803d">Analysis complete!</div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px">Job ID: ${jobId.slice(0,8)}… · ${jobResult.tokens_used||0} tokens used</div>
-        ${moduleType==='dossier'?`<div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-primary btn-sm" onclick="downloadDossierPdf('${jobId}')">⬇ PDF</button><button class="btn btn-secondary btn-sm" onclick="downloadDossierJson('${jobId}')">⬇ JSON</button></div>`:''}
-        ${moduleType==='research_asst'?`<button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="downloadResearchPdf('${jobId}')">⬇ Download PDF</button>`:''}
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="downloadAnyPdf('${urlModule}','${jobId}')">⬇ Download PDF</button>
+          ${moduleType==='dossier'?`<button class="btn btn-secondary btn-sm" onclick="downloadDossierJson('${jobId}')">⬇ JSON</button>`:''}
+        </div>
       </div>
     </div>`;
     document.getElementById('report-area').innerHTML = renderReport(output);
@@ -1187,74 +1183,60 @@ function microbiologyForm() {
   getProjectSelect();
   return `
   <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
-  <div class="form-group"><label>Sample Type *</label>
+  <div class="form-group"><label>Sample Type</label>
     <select data-field="sample_type">
-      <option>Pharmaceutical product</option>
-      <option>Raw material</option>
-      <option>Water sample</option>
-      <option>Environmental swab</option>
-      <option>Clinical specimen</option>
-      <option>Food/Herbal material</option>
+      <option>Pharmaceutical product</option><option>Raw material</option>
+      <option>Water sample</option><option>Environmental swab</option>
+      <option>Clinical specimen</option><option>Herbal material</option>
     </select>
   </div>
   <div class="form-group"><label>Culture Medium</label>
     <select data-field="culture_medium">
-      <option>Nutrient Agar</option>
-      <option>MacConkey Agar</option>
-      <option>Blood Agar</option>
-      <option>Sabouraud Dextrose Agar</option>
-      <option>Cetrimide Agar</option>
+      <option>Nutrient Agar</option><option>MacConkey Agar</option>
+      <option>Blood Agar</option><option>Sabouraud Dextrose Agar</option>
       <option>Multiple media</option>
     </select>
   </div>
   <div class="form-group"><label>Incubation Conditions</label>
-    <input data-field="incubation" value="37°C, 24-48 hours, aerobic" placeholder="e.g. 37°C, 24-48h, aerobic">
+    <input data-field="incubation" value="37°C, 24-48 hours, aerobic">
   </div>
-  <div class="form-group"><label>Analysis Context</label>
-    <textarea data-field="context" rows="3" placeholder="Describe what you observe: colony appearance, colour, size, Gram stain result, any special characteristics..."></textarea>
+  <div class="form-group"><label>Observations / Context *</label>
+    <textarea data-field="context" rows="4" placeholder="Describe what you observe:&#10;• Colony colour, size, shape, margin&#10;• Gram stain result&#10;• Any special characteristics&#10;• Number of colonies visible"></textarea>
   </div>
-  <div class="form-group"><label>Upload Petri Plate Image <span style="font-size:11px;color:var(--faint)">(optional)</span></label>
+  <div class="form-group"><label>Upload Petri Plate Image <span style="color:var(--faint);font-weight:400">(optional)</span></label>
     <input type="file" id="analytic-image" accept="image/*" style="padding:6px">
-    <div style="font-size:11px;color:var(--faint);margin-top:4px">Upload photo of Petri plate for AI-assisted colony counting and morphology analysis</div>
   </div>`;
 }
 
 function statisticalForm() {
   getProjectSelect();
   const models = [
-    ['t_test','t-test','Compare means between 2 groups'],
-    ['anova','One-way ANOVA','Compare means across 3+ groups'],
-    ['two_way_anova','Two-way ANOVA','Two independent variables'],
-    ['regression','Linear Regression','Predict continuous outcome'],
-    ['logistic_regression','Logistic Regression','Predict binary outcome'],
-    ['correlation','Correlation Analysis','Pearson/Spearman/Kendall'],
-    ['chi_square','Chi-square Test','Categorical data analysis'],
-    ['survival','Survival Analysis','Kaplan-Meier / Cox regression'],
-    ['pca','PCA','Principal Component Analysis'],
-    ['doe','DOE','Design of Experiments'],
-    ['rsm','Response Surface Methodology','Optimisation studies'],
-    ['non_parametric','Non-parametric Tests','Mann-Whitney, Kruskal-Wallis'],
+    ['t_test','t-test','2 groups'],['anova','One-way ANOVA','3+ groups'],
+    ['two_way_anova','Two-way ANOVA','2 variables'],['regression','Linear Regression','Continuous outcome'],
+    ['logistic','Logistic Regression','Binary outcome'],['correlation','Correlation','Pearson/Spearman'],
+    ['chi_square','Chi-square','Categorical data'],['survival','Survival Analysis','Time-to-event'],
+    ['pca','PCA','Dimensionality reduction'],['doe','DOE','Design of experiments'],
+    ['rsm','Response Surface','Optimisation'],['non_parametric','Non-parametric','Mann-Whitney/Kruskal'],
   ];
   return `
   <div class="form-group"><label>Project *</label><select id="intel-project"><option value="">— Select project —</option></select></div>
   <div class="form-group"><label>Study Title *</label>
-    <input data-field="title" placeholder="e.g. Efficacy of Carica papaya extract on platelet count in dengue">
+    <input data-field="title" placeholder="e.g. Efficacy of Carica papaya extract on platelet count">
   </div>
   <div class="form-group"><label>Statistical Models Required</label>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px" id="stat-model-grid">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:4px">
       ${models.map(([v,l,d])=>`
-      <label style="display:flex;align-items:flex-start;gap:6px;cursor:pointer;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12px">
-        <input type="checkbox" value="${v}" name="stat-model" style="width:auto;margin-top:2px;flex-shrink:0">
-        <div><div style="font-weight:500">${l}</div><div style="font-size:10px;color:var(--muted)">${d}</div></div>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12px">
+        <input type="checkbox" class="stat-model-cb" value="${v}" style="width:auto;flex-shrink:0">
+        <div><b>${l}</b> <span style="color:var(--faint)">${d}</span></div>
       </label>`).join('')}
     </div>
-    <input type="hidden" data-field="statistical_models" id="stat-models-hidden" value="[]">
   </div>
-  <div class="form-group"><label>Data Description</label>
-    <textarea data-field="data_description" rows="3" placeholder="Describe your data: number of groups, sample size, variables, measurement scale, any preliminary results..."></textarea>
+  <div class="form-group"><label>Data Description *</label>
+    <textarea data-field="data_description" rows="3" placeholder="Describe your data: groups, sample size, variables, measurement scale, any preliminary observations..."></textarea>
   </div>
-  <div class="form-group"><label>Upload Data File <span style="font-size:11px;color:var(--faint)">(Excel/CSV/PDF optional)</span></label>
-    <input type="file" id="analytic-image" accept=".xlsx,.csv,.pdf,.doc,.docx" style="padding:6px">
+  <div class="form-group"><label>Upload Data File <span style="color:var(--faint);font-weight:400">(Excel/CSV/PDF optional)</span></label>
+    <input type="file" id="stat-file" accept=".xlsx,.csv,.pdf,.doc,.docx" style="padding:6px">
   </div>`;
 }
 
@@ -1268,39 +1250,29 @@ function preclinicalForm() {
   <div class="form-group"><label>Disease / Indication *</label>
     <input data-field="disease" placeholder="e.g. Type 2 Diabetes Mellitus">
   </div>
-  <div class="form-group"><label>Therapeutic Area</label>
-    <select data-field="therapeutic_area">
-      <option>Metabolic disorders</option>
-      <option>Cardiovascular</option>
-      <option>Infectious diseases</option>
-      <option>Oncology</option>
-      <option>Neurology</option>
-      <option>Respiratory</option>
-      <option>Gastroenterology</option>
-      <option>Musculoskeletal</option>
-      <option>Dermatology</option>
-      <option>Immunology</option>
-      <option>Other</option>
-    </select>
-  </div>
-  <div class="form-group"><label>Product Type</label>
-    <select data-field="product_type">
-      <option>Herbal/Ayurvedic</option>
-      <option>Allopathic small molecule</option>
-      <option>Biologic</option>
-      <option>Nutraceutical</option>
-      <option>Medical device</option>
-    </select>
+  <div class="grid-2">
+    <div class="form-group"><label>Therapeutic Area</label>
+      <select data-field="therapeutic_area">
+        <option>Metabolic disorders</option><option>Cardiovascular</option>
+        <option>Infectious diseases</option><option>Oncology</option>
+        <option>Neurology</option><option>Respiratory</option>
+        <option>Gastroenterology</option><option>Immunology</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Product Type</label>
+      <select data-field="product_type">
+        <option>Herbal/Ayurvedic</option><option>Allopathic small molecule</option>
+        <option>Biologic</option><option>Nutraceutical</option>
+      </select>
+    </div>
   </div>
   <div class="form-group"><label>Active Ingredient(s)</label>
-    <input data-field="active_ingredients" placeholder="e.g. Bitter Melon Extract, Fenugreek Seed Extract">
+    <input data-field="active_ingredients" placeholder="e.g. Bitter Melon Extract 250mg, Fenugreek Extract 125mg">
   </div>
   <div class="form-group"><label>Regulatory Target</label>
     <select data-field="regulatory_target">
-      <option>CDSCO IND (India)</option>
-      <option>USFDA IND</option>
-      <option>EMA CTA</option>
-      <option>AYUSH New Drug</option>
+      <option>CDSCO IND (India)</option><option>USFDA IND</option>
+      <option>EMA CTA</option><option>AYUSH New Drug</option>
       <option>Research publication only</option>
     </select>
   </div>`;
@@ -1319,22 +1291,21 @@ function clinicalForm() {
   <div class="form-group"><label>Therapeutic Area</label>
     <input data-field="therapeutic_area" placeholder="e.g. Endocrinology / Metabolic disorders">
   </div>
-  <div class="form-group"><label>Product Type</label>
-    <select data-field="product_type">
-      <option>Herbal/Ayurvedic</option>
-      <option>Allopathic small molecule</option>
-      <option>Biologic/Biosimilar</option>
-      <option>Nutraceutical</option>
-      <option>Combination product</option>
-    </select>
-  </div>
-  <div class="form-group"><label>Current Development Stage</label>
-    <select data-field="development_stage">
-      <option value="preclinical">Preclinical</option>
-      <option value="phase_1">Phase I ready</option>
-      <option value="phase_2">Phase II ready</option>
-      <option value="phase_3">Phase III ready</option>
-    </select>
+  <div class="grid-2">
+    <div class="form-group"><label>Product Type</label>
+      <select data-field="product_type">
+        <option>Herbal/Ayurvedic</option><option>Allopathic small molecule</option>
+        <option>Biologic/Biosimilar</option><option>Nutraceutical</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Development Stage</label>
+      <select data-field="development_stage">
+        <option value="preclinical">Preclinical</option>
+        <option value="phase_1">Phase I ready</option>
+        <option value="phase_2">Phase II ready</option>
+        <option value="phase_3">Phase III ready</option>
+      </select>
+    </div>
   </div>`;
 }
 
@@ -1344,14 +1315,14 @@ async function downloadAnyPdf(urlModule, jobId) {
   try {
     const resp = await fetch(`/api/v1/intelligence/${urlModule}/reports/${jobId}/download/pdf/`,
       {headers: {Authorization: 'Bearer '+AUTH.token}});
-    if (!resp.ok) { toast('PDF generation failed — try again','error'); return; }
+    if (!resp.ok) { toast('PDF generation failed','error'); return; }
     const blob = await resp.blob();
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href = url; a.download = `AIPBIOS_${urlModule}_report.pdf`;
     a.click(); URL.revokeObjectURL(url);
-    toast('PDF downloaded successfully!','success');
-  } catch(e) { toast('Download failed','error'); }
+    toast('PDF downloaded!','success');
+  } catch(e) { toast('Download failed: '+e.message,'error'); }
 }
 
 async function downloadDossierPdf(jobId) {
